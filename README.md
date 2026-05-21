@@ -20,7 +20,7 @@ agent-ping dev     # equivalente, via CLI
 ```
 
 O Vite sobe em `localhost:5173` e o Electron abre automaticamente.
-A variável `AGENT_PING_DEV=1` é passada para o Electron, que carrega o dev server.
+`scripts/electron-dev.js` seta `AGENT_PING_DEV=1` via `spawn` (funciona em macOS, Linux e Windows), sinalizando ao Electron para carregar o dev server em vez de `dist/`.
 
 ### Modo de produção local
 
