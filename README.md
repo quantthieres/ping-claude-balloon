@@ -17,13 +17,77 @@ npm run dev
 
 O Vite sobe em `localhost:5173` e o Electron abre automaticamente após o servidor estar pronto.
 
-## Scripts
+## CLI local
+
+O projeto inclui uma CLI unificada em `bin/agent-ping.js`.
+
+### Usar sem instalar
+
+```bash
+node bin/agent-ping.js help
+node bin/agent-ping.js doctor
+node bin/agent-ping.js start
+node bin/agent-ping.js health
+node bin/agent-ping.js notify permission
+node bin/agent-ping.js notify complete --title "Deploy OK" --message "v2.4.1"
+node bin/agent-ping.js hooks install
+node bin/agent-ping.js hooks uninstall
+```
+
+### Instalar globalmente com npm link
+
+```bash
+# Na raiz do projeto
+npm link
+
+# Agora disponível globalmente
+agent-ping help
+agent-ping doctor
+agent-ping start
+agent-ping health
+agent-ping notify waiting
+agent-ping hooks install
+```
+
+Para desfazer: `npm unlink` na raiz do projeto.
+
+### Comandos
+
+| Comando                        | O que faz                                            |
+|-------------------------------|-------------------------------------------------------|
+| `agent-ping start`            | Inicia o app em dev mode (Vite + Electron)            |
+| `agent-ping health`           | Verifica se o servidor HTTP está rodando              |
+| `agent-ping notify <state>`   | Envia notificação à bolha (`complete`, `waiting`, `permission`) |
+| `agent-ping hooks install`    | Instala hooks do Claude Code                          |
+| `agent-ping hooks uninstall`  | Remove os hooks do Claude Code                        |
+| `agent-ping doctor`           | Diagnóstico completo do ambiente                      |
+| `agent-ping help`             | Mostra ajuda e exemplos                               |
+
+Flags aceitas por `notify`:
+
+```bash
+agent-ping notify permission \
+  --title "Aprovação necessária" \
+  --message "Allow bash execution?" \
+  --meta "ferramenta: Bash"
+```
+
+### npm run cli e npm run doctor
+
+```bash
+npm run cli -- help     # equivale a node bin/agent-ping.js help
+npm run doctor          # equivale a node bin/agent-ping.js doctor
+```
+
+## Scripts npm
 
 | Comando                  | O que faz                                              |
 |--------------------------|--------------------------------------------------------|
 | `npm run dev`            | Inicia Vite + Electron simultaneamente                 |
 | `npm run build`          | Gera bundle de produção em `dist/`                     |
 | `npm start`              | Roda Electron com os arquivos em `dist/`               |
+| `npm run cli`            | Acessa a CLI (`node bin/agent-ping.js`)                |
+| `npm run doctor`         | Roda diagnóstico (`agent-ping doctor`)                 |
 | `npm run health`         | Verifica se o app está rodando                         |
 | `npm run notify:complete`   | Envia evento `complete` para a bolha               |
 | `npm run notify:waiting`    | Envia evento `waiting` para a bolha                |
@@ -279,12 +343,14 @@ O **×** da bolha esconde a bolha; clique no placeholder pontilhado ou em qualqu
 
 ```
 agent-ping-desktop/
+├── bin/
+│   └── agent-ping.js            ← CLI unificada (entry point do "bin" no package.json)
 ├── electron/
 │   ├── main.js          ← Electron main process + servidor HTTP
 │   └── preload.js       ← IPC bridge (contextBridge)
 ├── scripts/
 │   ├── claude-hook-notify.js    ← hook entry point — lê stdin, roteia estado
-│   ├── notify.js                ← CLI manual para testar o endpoint /notify
+│   ├── notify.js                ← helper HTTP para os scripts npm
 │   ├── install-claude-hooks.js  ← instala hooks em .claude/settings.local.json
 │   └── uninstall-claude-hooks.js ← remove os hooks
 ├── src/
