@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BubbleNotification from './components/BubbleNotification';
 
 const DEMOS = {
@@ -19,6 +19,12 @@ const DEMOS = {
   },
 };
 
+const STATE_MAP = {
+  complete: 'task-complete',
+  waiting: 'waiting-for-input',
+  permission: 'permission-needed',
+};
+
 const STATE_BTNS = [
   { key: 'task-complete', label: 'done' },
   { key: 'waiting-for-input', label: 'idle' },
@@ -29,15 +35,34 @@ export default function App() {
   const [visible, setVisible] = useState(true);
   const [activeState, setActiveState] = useState('task-complete');
   const [theme, setTheme] = useState('light');
+  const [notifyOverride, setNotifyOverride] = useState(null);
+
+  useEffect(() => {
+    if (!window.electronAPI?.onNotify) return;
+    window.electronAPI.onNotify(({ state, title, message, meta }) => {
+      const internalState = STATE_MAP[state];
+      if (!internalState) return;
+      const normMeta = meta == null
+        ? undefined
+        : Array.isArray(meta) ? meta : [meta];
+      setActiveState(internalState);
+      setVisible(true);
+      setNotifyOverride({ title, subtitle: message, meta: normMeta });
+    });
+  }, []);
 
   const isDark = theme === 'dark';
   const demo = DEMOS[activeState];
+  const displayTitle = notifyOverride?.title ?? demo.title;
+  const displaySubtitle = notifyOverride?.subtitle ?? demo.subtitle;
+  const displayMeta = notifyOverride?.meta ?? demo.meta;
 
   const handleDismiss = () => setVisible(false);
 
   const handleShow = (state) => {
     setActiveState(state);
     setVisible(true);
+    setNotifyOverride(null);
   };
 
   return (
@@ -46,9 +71,9 @@ export default function App() {
       {visible ? (
         <BubbleNotification
           state={activeState}
-          title={demo.title}
-          subtitle={demo.subtitle}
-          meta={demo.meta}
+          title={displayTitle}
+          subtitle={displaySubtitle}
+          meta={displayMeta}
           theme={theme}
           onClick={() => console.log('focus terminal')}
           onDismiss={handleDismiss}

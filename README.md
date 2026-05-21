@@ -1,6 +1,6 @@
 # agent-ping-desktop
 
-MVP do Agent Ping como app Electron + React. Janela flutuante (frameless, transparent, alwaysOnTop) que exibe a bolha de notificação nos três estados.
+MVP do Agent Ping como app Electron + React. Janela flutuante (frameless, transparent, alwaysOnTop) que exibe a bolha de notificação nos três estados. A partir da fase 2, a bolha pode ser acionada por qualquer processo local via HTTP.
 
 ## Requisitos
 
@@ -19,33 +19,108 @@ O Vite sobe em `localhost:5173` e o Electron abre automaticamente após o servid
 
 ## Scripts
 
-| Comando       | O que faz                                      |
-|---------------|------------------------------------------------|
-| `npm run dev` | Inicia Vite + Electron simultaneamente         |
-| `npm run build` | Gera bundle de produção em `dist/`           |
-| `npm start`   | Roda Electron com os arquivos em `dist/`       |
+| Comando                  | O que faz                                              |
+|--------------------------|--------------------------------------------------------|
+| `npm run dev`            | Inicia Vite + Electron simultaneamente                 |
+| `npm run build`          | Gera bundle de produção em `dist/`                     |
+| `npm start`              | Roda Electron com os arquivos em `dist/`               |
+| `npm run health`         | Verifica se o app está rodando                         |
+| `npm run notify:complete`| Envia evento `complete` para a bolha                   |
+| `npm run notify:waiting` | Envia evento `waiting` para a bolha                    |
+| `npm run notify:permission` | Envia evento `permission` para a bolha             |
+
+## Servidor HTTP local
+
+Quando o app está rodando, ele expõe um servidor HTTP em:
+
+```
+http://127.0.0.1:47321
+```
+
+### GET /health
+
+```bash
+curl http://127.0.0.1:47321/health
+# → {"ok":true,"app":"agent-ping"}
+```
+
+### POST /notify
+
+```bash
+curl -X POST http://127.0.0.1:47321/notify \
+  -H 'Content-Type: application/json' \
+  -d '{"state":"complete"}'
+```
+
+Campos aceitos:
+
+| Campo     | Tipo                                    | Obrigatório |
+|-----------|-----------------------------------------|-------------|
+| `state`   | `"complete"` \| `"waiting"` \| `"permission"` | ✓  |
+| `title`   | string                                  | —           |
+| `message` | string                                  | —           |
+| `meta`    | string ou string[]                      | —           |
+
+Quando `title`, `message` ou `meta` são omitidos, a bolha usa os textos padrão de demonstração para aquele estado.
+
+### Testando com npm scripts
+
+Com o app rodando em um terminal:
+
+```bash
+# Em outro terminal:
+npm run notify:complete
+npm run notify:waiting
+npm run notify:permission
+npm run health
+```
+
+Se o app não estiver rodando:
+
+```
+Agent Ping app is not running. Start it with npm run dev.
+```
+
+### Enviando conteúdo customizado
+
+```bash
+node scripts/notify.js complete \
+  --title "Deploy finalizado" \
+  --message "prod v2.4.1 deploy OK · 3 serviços" \
+  --meta "2m 14s"
+```
 
 ## Estados
 
-Use os botões na barra de controle da janela para alternar:
+| API state    | Visual                         |
+|--------------|-------------------------------|
+| `complete`   | Verde — DONE                  |
+| `waiting`    | Azul — IDLE (mascote com bob) |
+| `permission` | Âmbar — HOLD (mascote shake)  |
+
+## Interface de demonstração
+
+A barra de controle na janela permite alternar estados manualmente:
 
 - **done** — `task-complete` (verde)
-- **idle** — `waiting-for-input` (azul, mascote com bob)
-- **hold** — `permission-needed` (âmbar, mascote com shake)
+- **idle** — `waiting-for-input` (azul)
+- **hold** — `permission-needed` (âmbar)
 
 O botão **◑ / ◐** alterna entre tema claro e escuro.
 
-O **×** da bolha esconde a bolha; clique no placeholder pontilhado ou em qualquer botão de estado para reexibi-la.
+O **×** da bolha esconde a bolha; clique no placeholder pontilhado ou em qualquer botão de estado para reexibi-la. Um novo evento `/notify` também a reexibe automaticamente.
 
 ## Estrutura
 
 ```
 agent-ping-desktop/
 ├── electron/
-│   ├── main.js          ← Electron main process
+│   ├── main.js          ← Electron main process + servidor HTTP
 │   └── preload.js       ← IPC bridge (contextBridge)
+├── scripts/
+│   └── notify.js        ← CLI para testar o endpoint /notify
 ├── src/
-│   ├── App.jsx          ← Demo com state switcher
+│   ├── App.jsx          ← Demo com state switcher + listener IPC
 │   ├── main.jsx         ← React entry
 │   ├── index.css        ← Tailwind + reset
 │   └── components/

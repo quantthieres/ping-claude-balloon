@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build",
-    "start": "electron ."
+    "start": "electron .",
+    "health": "node scripts/notify.js health",
+    "notify:complete": "node scripts/notify.js complete",
+    "notify:waiting": "node scripts/notify.js waiting",
+    "notify:permission": "node scripts/notify.js permission"
   },
   "dependencies": {
     "react": "^18.3.1",
