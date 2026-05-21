@@ -1,0 +1,25 @@
+{
+  "name": "agent-ping-desktop",
+  "version": "0.1.0",
+  "description": "Agent Ping — floating desktop notification bubble",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^33.4.11",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "vite": "^5.4.11",
+    "wait-on": "^8.0.1"
+  }
+}
