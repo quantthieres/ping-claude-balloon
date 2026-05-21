@@ -9,13 +9,30 @@ MVP do Agent Ping como app Electron + React. Janela flutuante (frameless, transp
 
 ## Como rodar
 
+### Modo de desenvolvimento
+
 ```bash
 cd agent-ping-desktop
 npm install
-npm run dev
+npm run dev        # Vite + Electron (hot-reload)
+# ou
+agent-ping dev     # equivalente, via CLI
 ```
 
-O Vite sobe em `localhost:5173` e o Electron abre automaticamente após o servidor estar pronto.
+O Vite sobe em `localhost:5173` e o Electron abre automaticamente.
+A variável `AGENT_PING_DEV=1` é passada para o Electron, que carrega o dev server.
+
+### Modo de produção local
+
+```bash
+npm run build      # gera dist/
+agent-ping start   # inicia Electron carregando dist/index.html
+# ou
+npm run app:start  # equivalente sem a CLI
+```
+
+> Publicação via npm/npx virá em fase futura. Por ora a CLI funciona
+> localmente com `npm link`.
 
 ## CLI local
 
@@ -26,7 +43,8 @@ O projeto inclui uma CLI unificada em `bin/agent-ping.js`.
 ```bash
 node bin/agent-ping.js help
 node bin/agent-ping.js doctor
-node bin/agent-ping.js start
+node bin/agent-ping.js dev           # desenvolvimento (Vite + Electron)
+node bin/agent-ping.js start         # produção (usa dist/)
 node bin/agent-ping.js health
 node bin/agent-ping.js notify permission
 node bin/agent-ping.js notify complete --title "Deploy OK" --message "v2.4.1"
@@ -43,7 +61,8 @@ npm link
 # Agora disponível globalmente
 agent-ping help
 agent-ping doctor
-agent-ping start
+agent-ping dev              # development
+agent-ping start            # production (requer build prévio)
 agent-ping health
 agent-ping notify waiting
 agent-ping hooks install
@@ -55,7 +74,8 @@ Para desfazer: `npm unlink` na raiz do projeto.
 
 | Comando                        | O que faz                                            |
 |-------------------------------|-------------------------------------------------------|
-| `agent-ping start`            | Inicia o app em dev mode (Vite + Electron)            |
+| `agent-ping dev`              | Inicia em dev mode (Vite + Electron, hot-reload)      |
+| `agent-ping start`            | Inicia usando o build de produção em `dist/`          |
 | `agent-ping health`           | Verifica se o servidor HTTP está rodando              |
 | `agent-ping notify <state>`   | Envia notificação à bolha (`complete`, `waiting`, `permission`) |
 | `agent-ping hooks install`    | Instala hooks do Claude Code                          |
@@ -83,9 +103,10 @@ npm run doctor          # equivale a node bin/agent-ping.js doctor
 
 | Comando                  | O que faz                                              |
 |--------------------------|--------------------------------------------------------|
-| `npm run dev`            | Inicia Vite + Electron simultaneamente                 |
+| `npm run dev`            | Inicia Vite + Electron em modo de desenvolvimento      |
 | `npm run build`          | Gera bundle de produção em `dist/`                     |
-| `npm start`              | Roda Electron com os arquivos em `dist/`               |
+| `npm start`              | Roda Electron carregando `dist/` (produção)            |
+| `npm run app:start`      | Alias para `npm start`                                 |
 | `npm run cli`            | Acessa a CLI (`node bin/agent-ping.js`)                |
 | `npm run doctor`         | Roda diagnóstico (`agent-ping doctor`)                 |
 | `npm run health`         | Verifica se o app está rodando                         |

@@ -32,7 +32,10 @@ function createWindow() {
     },
   });
 
-  const isDev = !app.isPackaged;
+  // AGENT_PING_DEV=1 → dev mode (Vite dev server at localhost:5173)
+  // Not set            → production mode (dist/index.html)
+  // app.isPackaged     → always production regardless of env var
+  const isDev = !app.isPackaged && process.env.AGENT_PING_DEV === '1';
 
   if (isDev) {
     win.loadURL('http://localhost:5173');
