@@ -4,9 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const CLAUDE_DIR  = path.join(process.cwd(), '.claude');
-const SETTINGS    = path.join(CLAUDE_DIR, 'settings.local.json');
-const NOTIFY      = path.resolve(__dirname, 'notify.js');
+const CLAUDE_DIR    = path.join(process.cwd(), '.claude');
+const SETTINGS      = path.join(CLAUDE_DIR, 'settings.local.json');
+const HOOK_NOTIFY   = path.resolve(__dirname, 'claude-hook-notify.js');
 
 function timestamp() {
   const d = new Date();
@@ -20,9 +20,10 @@ function shellQuote(s) {
   return `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
-function hookCommand(state) {
-  // >/dev/null 2>&1 || true — silent + always exits 0 so Claude Code is never disrupted
-  return `node ${shellQuote(NOTIFY)} ${state} >/dev/null 2>&1 || true`;
+// hookEvent is the Claude Code event name (Stop, Notification, …) passed as a
+// CLI fallback arg — the script also reads the real payload from stdin.
+function hookCommand(hookEvent) {
+  return `node ${shellQuote(HOOK_NOTIFY)} ${hookEvent} >/dev/null 2>&1 || true`;
 }
 
 function main() {
@@ -54,13 +55,13 @@ function main() {
     Notification: [
       {
         matcher: '',
-        hooks: [{ type: 'command', command: hookCommand('waiting') }],
+        hooks: [{ type: 'command', command: hookCommand('Notification') }],
       },
     ],
     Stop: [
       {
         matcher: '',
-        hooks: [{ type: 'command', command: hookCommand('complete') }],
+        hooks: [{ type: 'command', command: hookCommand('Stop') }],
       },
     ],
   };
@@ -70,11 +71,14 @@ function main() {
   console.log('');
   console.log('Claude Code hooks installed in .claude/settings.local.json');
   console.log('');
-  console.log('  Notification  →  agent-ping: waiting');
-  console.log('  Stop          →  agent-ping: complete');
+  console.log('  Notification (permission keyword)  →  agent-ping: permission (amber)');
+  console.log('  Notification (other)               →  agent-ping: waiting   (blue)');
+  console.log('  Stop                               →  agent-ping: complete  (green)');
   console.log('');
-  console.log('Hook command:');
-  console.log(' ', hookCommand('<state>'));
+  console.log('Hook script:  scripts/claude-hook-notify.js');
+  console.log('');
+  console.log('Debug mode (logs to .claude/agent-ping-hook-debug.log):');
+  console.log('  AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop');
   console.log('');
   console.log('Quick test:');
   console.log('  Terminal 1:  npm run dev');

@@ -4,9 +4,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const CLAUDE_DIR = path.join(process.cwd(), '.claude');
-const SETTINGS   = path.join(CLAUDE_DIR, 'settings.local.json');
-const NOTIFY     = path.resolve(__dirname, 'notify.js');
+const CLAUDE_DIR    = path.join(process.cwd(), '.claude');
+const SETTINGS      = path.join(CLAUDE_DIR, 'settings.local.json');
+// Detect hooks installed by either the old script or the new one
+const NOTIFY        = path.resolve(__dirname, 'notify.js');
+const HOOK_NOTIFY   = path.resolve(__dirname, 'claude-hook-notify.js');
 
 function timestamp() {
   const d = new Date();
@@ -15,10 +17,13 @@ function timestamp() {
          `-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
-// Returns true if a hook entry was injected by agent-ping (identified by notify.js path)
+// Returns true if a hook entry was injected by agent-ping
+// (matches either the legacy notify.js or the new claude-hook-notify.js path)
 function isAgentPingEntry(entry) {
   return entry.hooks?.some(
-    (h) => h.type === 'command' && h.command?.includes(NOTIFY),
+    (h) =>
+      h.type === 'command' &&
+      (h.command?.includes(NOTIFY) || h.command?.includes(HOOK_NOTIFY)),
   ) ?? false;
 }
 
