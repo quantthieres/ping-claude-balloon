@@ -25,9 +25,11 @@ O Vite sobe em `localhost:5173` e o Electron abre automaticamente após o servid
 | `npm run build`          | Gera bundle de produção em `dist/`                     |
 | `npm start`              | Roda Electron com os arquivos em `dist/`               |
 | `npm run health`         | Verifica se o app está rodando                         |
-| `npm run notify:complete`| Envia evento `complete` para a bolha                   |
-| `npm run notify:waiting` | Envia evento `waiting` para a bolha                    |
+| `npm run notify:complete`   | Envia evento `complete` para a bolha               |
+| `npm run notify:waiting`    | Envia evento `waiting` para a bolha                |
 | `npm run notify:permission` | Envia evento `permission` para a bolha             |
+| `npm run hooks:install`     | Instala hooks do Claude Code em `.claude/settings.local.json` |
+| `npm run hooks:uninstall`   | Remove os hooks do Claude Code                     |
 
 ## Servidor HTTP local
 
@@ -120,6 +122,78 @@ Os apps são tentados nesta ordem de prioridade:
 
 Usa PowerShell + `Microsoft.VisualBasic.Interaction.AppActivate` com o PID do processo. O "foreground lock" do Windows pode impedir o foco completo em alguns cenários — o app pode apenas piscar na barra de tarefas.
 
+## Integração com Claude Code hooks
+
+> **Escopo:** a integração é **local ao projeto**. Os hooks são gravados em
+> `.claude/settings.local.json` (ignorado pelo git) e não afetam outros
+> projetos nem a configuração global do Claude Code em `~/.claude/settings.json`.
+
+### Instalar
+
+```bash
+# Terminal 1 — app deve estar rodando para os hooks funcionarem
+npm run dev
+
+# Terminal 2
+npm run hooks:install
+```
+
+O script cria ou edita `.claude/settings.local.json`, sempre fazendo um
+backup com timestamp antes de alterar qualquer coisa.
+
+Mapeamento de eventos:
+
+| Evento Claude Code | Estado da bolha |
+|--------------------|----------------|
+| `Notification`     | `waiting` (azul — IDLE) |
+| `Stop`             | `complete` (verde — DONE) |
+
+### Remover
+
+```bash
+npm run hooks:uninstall
+```
+
+Remove apenas as entradas adicionadas pelo Agent Ping. Outras hooks que o
+usuário tenha configurado no mesmo arquivo são preservadas.
+
+### Teste manual
+
+```
+Terminal 1:  npm run dev          ← Agent Ping rodando
+Terminal 2:  npm run hooks:install ← instala os hooks
+
+Abra Claude Code neste projeto e execute um prompt qualquer.
+  ✓ Ao terminar (Stop)          → bolha aparece no estado verde (done)
+  ✓ Em notificação/permissão    → bolha aparece no estado azul (waiting)
+```
+
+Para testar os estados manualmente (sem Claude Code):
+```bash
+npm run notify:complete    # verde — done
+npm run notify:waiting     # azul — idle
+npm run notify:permission  # âmbar — hold
+```
+
+### Comportamento se o app não estiver rodando
+
+O comando do hook termina com `>/dev/null 2>&1 || true` — sem saída e
+sempre com exit 0. Claude Code nunca recebe um erro e continua funcionando
+normalmente.
+
+### Limitações conhecidas
+
+- Os hooks disparam uma vez por `Stop` / `Notification`. Se o Claude Code
+  disparar múltiplas notificações em sequência, a bolha será sobrescrita
+  com o último estado recebido.
+- A integração usa `Notification` para cobrir tanto "waiting for input"
+  quanto "permission needed". Distinguir os dois via matcher de regex é
+  possível mas requer conhecimento do formato exato da mensagem enviada
+  pelo Claude Code.
+- Em `Stop`, o hook não sabe ainda se a tarefa foi bem-sucedida ou
+  interrompida — sempre exibe `complete`. Refinamentos futuros podem
+  usar `PreToolUse`/`PostToolUse` para estados mais granulares.
+
 ## Estados
 
 | API state    | Visual                         |
@@ -148,7 +222,9 @@ agent-ping-desktop/
 │   ├── main.js          ← Electron main process + servidor HTTP
 │   └── preload.js       ← IPC bridge (contextBridge)
 ├── scripts/
-│   └── notify.js        ← CLI para testar o endpoint /notify
+│   ├── notify.js                ← CLI para testar o endpoint /notify
+│   ├── install-claude-hooks.js  ← instala hooks em .claude/settings.local.json
+│   └── uninstall-claude-hooks.js ← remove os hooks
 ├── src/
 │   ├── App.jsx          ← Demo com state switcher + listener IPC
 │   ├── main.jsx         ← React entry
