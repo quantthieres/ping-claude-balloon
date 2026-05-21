@@ -10,3 +10,4 @@ out/
 .env.local
 .claude/settings.local.json
 .claude/settings.local.backup-*.json
+.claude/agent-ping-hook-debug.log

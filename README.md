@@ -141,12 +141,48 @@ npm run hooks:install
 O script cria ou edita `.claude/settings.local.json`, sempre fazendo um
 backup com timestamp antes de alterar qualquer coisa.
 
-Mapeamento de eventos:
+### Mapeamento de eventos → estados visuais
 
-| Evento Claude Code | Estado da bolha |
-|--------------------|----------------|
-| `Notification`     | `waiting` (azul — IDLE) |
-| `Stop`             | `complete` (verde — DONE) |
+O roteamento é feito pelo script `scripts/claude-hook-notify.js`, que lê o
+payload JSON enviado pelo Claude Code via stdin e decide qual estado exibir:
+
+| Evento Claude Code | Condição                              | Estado da bolha          |
+|--------------------|---------------------------------------|--------------------------|
+| `Stop`             | sempre                                | `complete` (verde — DONE)|
+| `Notification`     | mensagem contém palavra de permissão  | `permission` (âmbar — HOLD) |
+| `Notification`     | qualquer outro conteúdo               | `waiting` (azul — IDLE)  |
+
+**Palavras-chave que ativam o estado `permission`** (busca case-insensitive
+na mensagem da notificação):
+
+```
+permission, allow, approve, authorize, grant, blocked,
+requires approval, do you want to, do you wish to, confirm
+```
+
+O roteamento de `permission` vs `waiting` depende do payload real que o
+Claude Code envia na notificação. Se a mensagem não contiver nenhuma dessas
+palavras, o estado padrão é `waiting`.
+
+### Modo debug
+
+Para inspecionar o que está acontecendo nos hooks:
+
+```bash
+AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop
+```
+
+Quando a variável `AGENT_PING_HOOK_DEBUG=1` está ativa, o script grava
+entradas JSON em `.claude/agent-ping-hook-debug.log`:
+
+```json
+{"ts":"2026-05-21T15:30:00.000Z","type":"input","hookEvent":"Stop","payload":{...}}
+{"ts":"2026-05-21T15:30:00.000Z","type":"decision","state":"complete"}
+{"ts":"2026-05-21T15:30:00.000Z","type":"result","ok":true,"status":200}
+```
+
+Para ativar durante uma sessão de Claude Code, defina a variável antes de
+abrir o Claude Code ou adicione-a ao hook command manualmente.
 
 ### Remover
 
@@ -154,45 +190,70 @@ Mapeamento de eventos:
 npm run hooks:uninstall
 ```
 
-Remove apenas as entradas adicionadas pelo Agent Ping. Outras hooks que o
-usuário tenha configurado no mesmo arquivo são preservadas.
+Remove as entradas adicionadas pelo Agent Ping (tanto as do script legado
+`notify.js` quanto as do novo `claude-hook-notify.js`). Outras hooks
+configuradas pelo usuário são preservadas.
 
 ### Teste manual
 
 ```
-Terminal 1:  npm run dev          ← Agent Ping rodando
+Terminal 1:  npm run dev           ← Agent Ping rodando
 Terminal 2:  npm run hooks:install ← instala os hooks
 
 Abra Claude Code neste projeto e execute um prompt qualquer.
-  ✓ Ao terminar (Stop)          → bolha aparece no estado verde (done)
-  ✓ Em notificação/permissão    → bolha aparece no estado azul (waiting)
+  ✓ Ao terminar (Stop)                → bolha aparece no estado verde (done)
+  ✓ Notificação com palavra de permissão → bolha aparece no estado âmbar (hold)
+  ✓ Notificação genérica              → bolha aparece no estado azul (waiting)
 ```
 
 Para testar os estados manualmente (sem Claude Code):
+
 ```bash
 npm run notify:complete    # verde — done
 npm run notify:waiting     # azul — idle
 npm run notify:permission  # âmbar — hold
 ```
 
+Para testar o script de hook diretamente, simulando o payload do Claude Code:
+
+```bash
+# Simular evento Stop
+echo '{"hook_event_name":"Stop","session_id":"test"}' | \
+  node scripts/claude-hook-notify.js Stop
+
+# Simular Notification com permissão
+echo '{"hook_event_name":"Notification","message":"Claude needs permission to run bash"}' | \
+  node scripts/claude-hook-notify.js Notification
+
+# Simular Notification genérica (waiting)
+echo '{"hook_event_name":"Notification","message":"Task is running..."}' | \
+  node scripts/claude-hook-notify.js Notification
+
+# Com debug ativo
+AGENT_PING_HOOK_DEBUG=1 \
+  echo '{"hook_event_name":"Stop"}' | \
+  node scripts/claude-hook-notify.js Stop
+cat .claude/agent-ping-hook-debug.log
+```
+
 ### Comportamento se o app não estiver rodando
 
 O comando do hook termina com `>/dev/null 2>&1 || true` — sem saída e
 sempre com exit 0. Claude Code nunca recebe um erro e continua funcionando
-normalmente.
+normalmente. O script também tem timeout de 3 segundos na requisição HTTP,
+então não bloqueia mesmo se o servidor não responder.
 
 ### Limitações conhecidas
 
 - Os hooks disparam uma vez por `Stop` / `Notification`. Se o Claude Code
-  disparar múltiplas notificações em sequência, a bolha será sobrescrita
-  com o último estado recebido.
-- A integração usa `Notification` para cobrir tanto "waiting for input"
-  quanto "permission needed". Distinguir os dois via matcher de regex é
-  possível mas requer conhecimento do formato exato da mensagem enviada
-  pelo Claude Code.
-- Em `Stop`, o hook não sabe ainda se a tarefa foi bem-sucedida ou
-  interrompida — sempre exibe `complete`. Refinamentos futuros podem
-  usar `PreToolUse`/`PostToolUse` para estados mais granulares.
+  disparar múltiplas notificações em sequência, a bolha exibe o último
+  estado recebido.
+- O roteamento `permission` vs `waiting` depende do texto real que o
+  Claude Code envia no campo `message` da notificação. Se o formato mudar
+  em versões futuras do Claude Code, pode ser necessário ajustar as
+  palavras-chave em `scripts/claude-hook-notify.js`.
+- Em `Stop`, o hook não distingue tarefa bem-sucedida de interrompida —
+  sempre exibe `complete`.
 
 ## Estados
 
@@ -222,7 +283,8 @@ agent-ping-desktop/
 │   ├── main.js          ← Electron main process + servidor HTTP
 │   └── preload.js       ← IPC bridge (contextBridge)
 ├── scripts/
-│   ├── notify.js                ← CLI para testar o endpoint /notify
+│   ├── claude-hook-notify.js    ← hook entry point — lê stdin, roteia estado
+│   ├── notify.js                ← CLI manual para testar o endpoint /notify
 │   ├── install-claude-hooks.js  ← instala hooks em .claude/settings.local.json
 │   └── uninstall-claude-hooks.js ← remove os hooks
 ├── src/
