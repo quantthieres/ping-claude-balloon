@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 const http = require('http');
+const { focusTerminal } = require('./focus-terminal');
 
 const HTTP_PORT = 47321;
 const HTTP_HOST = '127.0.0.1';
@@ -102,6 +103,8 @@ app.whenReady().then(() => {
 
 ipcMain.on('hide-bubble', () => win?.hide());
 ipcMain.on('show-bubble', () => win?.show());
+
+ipcMain.handle('focus-terminal', (_event, preferredApp) => focusTerminal(preferredApp));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

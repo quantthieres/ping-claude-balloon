@@ -65,6 +65,19 @@ export default function App() {
     setNotifyOverride(null);
   };
 
+  const handleFocusTerminal = async () => {
+    if (!window.electronAPI?.focusTerminal) {
+      console.log('[agent-ping] focus terminal (no IPC bridge)');
+      return;
+    }
+    const result = await window.electronAPI.focusTerminal();
+    if (result?.ok) {
+      console.log(`[agent-ping] focused ${result.app}`);
+    } else {
+      console.warn('[agent-ping] terminal focus failed:', result?.error);
+    }
+  };
+
   return (
     <div className="p-[10px] flex flex-col gap-[10px]">
       {/* Bubble or placeholder */}
@@ -75,7 +88,7 @@ export default function App() {
           subtitle={displaySubtitle}
           meta={displayMeta}
           theme={theme}
-          onClick={() => console.log('focus terminal')}
+          onClick={handleFocusTerminal}
           onDismiss={handleDismiss}
         />
       ) : (
