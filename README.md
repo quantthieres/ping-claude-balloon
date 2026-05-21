@@ -90,6 +90,29 @@ node scripts/notify.js complete \
   --meta "2m 14s"
 ```
 
+## Clique na bolha — foco no terminal
+
+Clicar no card da bolha tenta trazer para frente o terminal ou editor configurado.
+
+### Suporte atual (macOS)
+
+Os apps são tentados nesta ordem de prioridade:
+
+| App             | Nome do processo |
+|-----------------|-----------------|
+| Warp            | `Warp`          |
+| iTerm2          | `iTerm2`        |
+| Terminal        | `Terminal`      |
+| Visual Studio Code | `Code`       |
+
+O primeiro app **em execução** é ativado via AppleScript (`tell application "X" to activate`). Se nenhum estiver aberto, o clique é silencioso (erro logado no console).
+
+Na primeira vez, macOS pode pedir permissão de Automação — aceite para que o AppleScript funcione.
+
+### Windows
+
+Suporte planejado para uma fase futura.
+
 ## Estados
 
 | API state    | Visual                         |
