@@ -79,20 +79,53 @@ function parseFlags(args) {
   return flags;
 }
 
-// ── npm spawner (cross-platform) ───────────────────────────────────────────
+// ── platform helpers ───────────────────────────────────────────────────────
 
 function npmBin() {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
 }
 
+function electronBin() {
+  // require('electron') returns the path to the Electron binary.
+  // Wrap in try/catch in case Electron is not installed.
+  try {
+    // Resolve from project root so it works after npm link
+    return require(require.resolve('electron', { paths: [ROOT] }));
+  } catch {
+    return path.join(ROOT, 'node_modules', '.bin', 'electron');
+  }
+}
+
 // ── commands ───────────────────────────────────────────────────────────────
 
-function cmdStart() {
-  console.log('Starting Agent Ping (dev mode)…');
+function cmdDev() {
+  console.log('Starting Agent Ping in dev mode (Vite + Electron)…');
   console.log('Press Ctrl+C to stop.\n');
   const child = spawn(npmBin(), ['run', 'dev'], { cwd: ROOT, stdio: 'inherit' });
   child.on('error', (err) => {
     console.error(`Failed to start: ${err.message}`);
+    process.exit(1);
+  });
+  child.on('exit', (code) => process.exit(code ?? 0));
+}
+
+function cmdStart() {
+  const distIndex = path.join(ROOT, 'dist', 'index.html');
+  if (!fs.existsSync(distIndex)) {
+    console.error(
+      'Production build not found.\n' +
+      'Run:  npm run build\n' +
+      'or:   agent-ping dev   (runs Vite + Electron dev mode)',
+    );
+    process.exit(1);
+  }
+
+  console.log('Starting Agent Ping (production build)…');
+  console.log('Press Ctrl+C to stop.\n');
+
+  const child = spawn(electronBin(), ['.'], { cwd: ROOT, stdio: 'inherit' });
+  child.on('error', (err) => {
+    console.error(`Failed to start Electron: ${err.message}`);
     process.exit(1);
   });
   child.on('exit', (code) => process.exit(code ?? 0));
@@ -202,6 +235,14 @@ async function cmdDoctor() {
   const mascotsOk = mascotPaths.every((p) => fs.existsSync(p));
   check('Mascot images (3 PNG)', mascotsOk, mascotsOk ? '' : 'missing in src/components/mascots/');
 
+  // Production build
+  const distIndex = path.join(ROOT, 'dist', 'index.html');
+  check(
+    'Production build (dist/)',
+    fs.existsSync(distIndex),
+    fs.existsSync(distIndex) ? '' : 'run: npm run build',
+  );
+
   // HTTP /health
   let healthOk     = false;
   let healthDetail = '';
@@ -275,7 +316,8 @@ Usage:
   agent-ping <command> [args]
 
 Commands:
-  start                     Start the app in dev mode (Vite + Electron)
+  dev                       Start in dev mode (Vite dev server + Electron)
+  start                     Start using the production build in dist/
   health                    Check if the Agent Ping HTTP server is running
   notify <state> [flags]    Send a notification to the bubble
                               states: complete | waiting | permission
@@ -285,7 +327,12 @@ Commands:
   doctor                    Run diagnostics and print a health report
   help                      Show this help message
 
+Workflow:
+  Development:   agent-ping dev
+  Production:    npm run build && agent-ping start
+
 Examples:
+  agent-ping dev
   agent-ping start
   agent-ping health
   agent-ping notify complete
@@ -303,6 +350,7 @@ const [,, cmd, ...rest] = process.argv;
 
 (async () => {
   switch (cmd) {
+    case 'dev':                  cmdDev();             break;
     case 'start':                cmdStart();           break;
     case 'health':               await cmdHealth();    break;
     case 'notify':               await cmdNotify(rest); break;

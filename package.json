@@ -7,9 +7,10 @@
     "agent-ping": "./bin/agent-ping.js"
   },
   "scripts": {
-    "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently -k -n vite,electron \"vite\" \"wait-on http://localhost:5173 && node scripts/electron-dev.js\"",
     "build": "vite build",
     "start": "electron .",
+    "app:start": "electron .",
     "cli": "node bin/agent-ping.js",
     "doctor": "node bin/agent-ping.js doctor",
     "health": "node scripts/notify.js health",
