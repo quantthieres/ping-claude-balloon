@@ -92,26 +92,33 @@ node scripts/notify.js complete \
 
 ## Clique na bolha — foco no terminal
 
-Clicar no card da bolha tenta trazer para frente o terminal ou editor configurado.
+Clicar no card da bolha tenta trazer para frente o terminal ou editor configurado. O comportamento é **best-effort**: sistemas operacionais impõem restrições ao foco programático de janelas, então o resultado pode variar conforme o estado do sistema.
 
-### Suporte atual (macOS)
+### macOS
 
 Os apps são tentados nesta ordem de prioridade:
 
-| App             | Nome do processo |
-|-----------------|-----------------|
-| Warp            | `Warp`          |
-| iTerm2          | `iTerm2`        |
-| Terminal        | `Terminal`      |
-| Visual Studio Code | `Code`       |
+| Prioridade | App                | Processo (`pgrep`) |
+|------------|--------------------|--------------------|
+| 1          | Warp               | `Warp`             |
+| 2          | iTerm2             | `iTerm2`           |
+| 3          | Terminal           | `Terminal`         |
+| 4          | Visual Studio Code | `Code`             |
 
-O primeiro app **em execução** é ativado via AppleScript (`tell application "X" to activate`). Se nenhum estiver aberto, o clique é silencioso (erro logado no console).
-
-Na primeira vez, macOS pode pedir permissão de Automação — aceite para que o AppleScript funcione.
+Usa AppleScript (`tell application "X" to activate`). Na primeira execução, macOS pode solicitar permissão de Automação — aceite para que o foco funcione.
 
 ### Windows
 
-Suporte planejado para uma fase futura.
+Os apps são tentados nesta ordem de prioridade:
+
+| Prioridade | App                | Processos verificados     |
+|------------|--------------------|---------------------------|
+| 1          | Windows Terminal   | `WindowsTerminal`         |
+| 2          | PowerShell         | `pwsh`, `powershell`      |
+| 3          | cmd                | `cmd`                     |
+| 4          | Visual Studio Code | `Code`                    |
+
+Usa PowerShell + `Microsoft.VisualBasic.Interaction.AppActivate` com o PID do processo. O "foreground lock" do Windows pode impedir o foco completo em alguns cenários — o app pode apenas piscar na barra de tarefas.
 
 ## Estados
 
