@@ -10,7 +10,9 @@
     "health": "node scripts/notify.js health",
     "notify:complete": "node scripts/notify.js complete",
     "notify:waiting": "node scripts/notify.js waiting",
-    "notify:permission": "node scripts/notify.js permission"
+    "notify:permission": "node scripts/notify.js permission",
+    "hooks:install": "node scripts/install-claude-hooks.js",
+    "hooks:uninstall": "node scripts/uninstall-claude-hooks.js"
   },
   "dependencies": {
     "react": "^18.3.1",
