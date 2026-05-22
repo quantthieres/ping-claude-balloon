@@ -15,7 +15,7 @@ function createWindow() {
 
   win = new BrowserWindow({
     width: 332,
-    height: 180,
+    height: 128,
     x: wx + ww - 352,
     y: wy + 20,
     frame: false,
