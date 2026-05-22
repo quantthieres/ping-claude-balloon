@@ -61,7 +61,7 @@ npm link
 # Agora disponível globalmente
 agent-ping help
 agent-ping doctor
-agent-ping dev              # development
+agent-ping dev              # development (apenas dentro do repo)
 agent-ping start            # production (requer build prévio)
 agent-ping health
 agent-ping notify waiting
@@ -69,6 +69,49 @@ agent-ping hooks install
 ```
 
 Para desfazer: `npm unlink` na raiz do projeto.
+
+### Distribuição local via npm pack
+
+Use `npm pack` para gerar um arquivo `.tgz` que pode ser instalado em qualquer projeto sem publicar no npm registry.
+
+```bash
+# Na raiz do repo — build é executado automaticamente pelo prepack
+npm pack
+# → gera agent-ping-desktop-0.1.0.tgz
+
+# Em outro diretório (simulando instalação em projeto externo)
+mkdir ../meu-projeto && cd ../meu-projeto
+npm init -y
+npm install ../agent-ping-desktop/agent-ping-desktop-0.1.0.tgz
+
+# Usar via npx (sem npm link)
+npx agent-ping help
+npx agent-ping doctor
+npx agent-ping start
+npx agent-ping health
+npx agent-ping notify permission
+npx agent-ping hooks install
+```
+
+**O que está incluído no pacote** (campo `files` em package.json):
+
+| Pasta/arquivo | Conteúdo                               |
+|---------------|----------------------------------------|
+| `bin/`        | CLI entry point                        |
+| `electron/`   | Electron main process                  |
+| `scripts/`    | Hook notify + install/uninstall        |
+| `dist/`       | App React compilado (gerado pelo build)|
+| `README.md`   | Documentação                           |
+
+**O que NÃO entra no pacote:** `src/`, `node_modules/`, `.claude/`, arquivos de config do Vite/Tailwind.
+
+> Publicação no npm registry virá em fase futura.
+
+#### Limitações do modo instalado via tgz
+
+- `agent-ping dev` não funciona (requer `src/` e o toolchain Vite, não incluídos no pacote)
+- `agent-ping start` funciona com o `dist/` embutido no pacote
+- `agent-ping hooks install` instala os hooks no `.claude/` do **diretório atual** (não no pacote)
 
 ### Comandos
 
