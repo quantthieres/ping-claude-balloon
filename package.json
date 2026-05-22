@@ -1,6 +1,6 @@
 {
   "name": "@quantthieres/ping-balloon",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ping Balloon — floating desktop notification bubble for terminal coding agents",
   "keywords": [
     "ping-balloon",
