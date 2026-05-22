@@ -254,7 +254,8 @@ Use this checklist before tagging a release.
 - [ ] Next notify event makes the bubble reappear
 
 **Theme**
-- [ ] ◑/◐ button toggles light/dark theme correctly
+- [ ] ☾/☀ button (inside the bubble, bottom-right) toggles light/dark theme
+- [ ] Clicking the theme button does not focus the terminal
 
 **Bubble click — terminal focus** (macOS)
 - [ ] Clicking the bubble focuses the active terminal app

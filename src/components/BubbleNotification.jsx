@@ -30,6 +30,7 @@ export default function BubbleNotification({
   subtitle,
   meta = [],
   theme = "light",
+  onToggleTheme,
   onClick,
   onDismiss,
   mascotSrc,
@@ -179,6 +180,26 @@ export default function BubbleNotification({
             <path d="M1.5 1.5 L8.5 8.5 M8.5 1.5 L1.5 8.5" />
           </svg>
         </button>
+
+        {onToggleTheme && (
+          <button
+            type="button"
+            aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleTheme();
+            }}
+            className={
+              "absolute bottom-2 right-2 w-[18px] h-[18px] rounded-full flex items-center justify-center " +
+              "opacity-40 hover:opacity-80 transition-all " +
+              (isDark ? "hover:bg-white/5" : "hover:bg-black/[0.05]")
+            }
+          >
+            <span className="text-[10px] leading-none" aria-hidden="true">
+              {isDark ? "☀" : "☾"}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );
