@@ -99,6 +99,14 @@ function electronBin() {
 // ── commands ───────────────────────────────────────────────────────────────
 
 function cmdDev() {
+  // Dev mode needs Vite and the source tree — only meaningful inside the repo.
+  if (!fs.existsSync(path.join(ROOT, 'src'))) {
+    console.error(
+      'Dev mode is not available in an installed package.\n' +
+      'To start the app:  agent-ping start',
+    );
+    process.exit(1);
+  }
   console.log('Starting Agent Ping in dev mode (Vite + Electron)…');
   console.log('Press Ctrl+C to stop.\n');
   const child = spawn(npmBin(), ['run', 'dev'], { cwd: ROOT, stdio: 'inherit' });
@@ -194,8 +202,10 @@ function cmdHooks(args) {
     process.exit(1);
   }
 
+  // Run the script with the *user's* working directory as cwd so that
+  // .claude/settings.local.json is created in their project, not in ROOT.
   const result = spawnSync(process.execPath, [scripts[sub]], {
-    cwd: ROOT,
+    cwd: process.cwd(),
     stdio: 'inherit',
   });
   process.exit(result.status ?? 0);
@@ -222,18 +232,30 @@ async function cmdDoctor() {
   // package.json
   check('package.json', fs.existsSync(path.join(ROOT, 'package.json')));
 
-  // Electron installed
-  const electronBin = path.join(ROOT, 'node_modules', '.bin', 'electron');
-  const electronDir = path.join(ROOT, 'node_modules', 'electron');
-  check('Electron installed', fs.existsSync(electronBin) || fs.existsSync(electronDir));
+  // Electron installed — use module resolution so hoisted packages are found
+  let electronInstalled = false;
+  try { require.resolve('electron', { paths: [ROOT] }); electronInstalled = true; } catch { /* not found */ }
+  check('Electron installed', electronInstalled, electronInstalled ? '' : 'run: npm install');
 
-  // Mascots
-  const mascotNames = ['complete', 'waiting', 'permission'];
-  const mascotPaths = mascotNames.map(
-    (n) => path.join(ROOT, 'src', 'components', 'mascots', `${n}.png`),
-  );
-  const mascotsOk = mascotPaths.every((p) => fs.existsSync(p));
-  check('Mascot images (3 PNG)', mascotsOk, mascotsOk ? '' : 'missing in src/components/mascots/');
+  // Mascots — check src/ (dev) or dist/assets/ (installed package)
+  let mascotsOk     = false;
+  let mascotsDetail = '';
+  const srcMascotDir = path.join(ROOT, 'src', 'components', 'mascots');
+  if (fs.existsSync(srcMascotDir)) {
+    const expected = ['complete', 'waiting', 'permission'];
+    mascotsOk     = expected.every((n) => fs.existsSync(path.join(srcMascotDir, `${n}.png`)));
+    mascotsDetail = mascotsOk ? '' : 'missing in src/components/mascots/';
+  } else {
+    const distAssets = path.join(ROOT, 'dist', 'assets');
+    if (fs.existsSync(distAssets)) {
+      const pngs = fs.readdirSync(distAssets).filter((f) => f.endsWith('.png'));
+      mascotsOk     = pngs.length >= 3;
+      mascotsDetail = mascotsOk ? '' : `only ${pngs.length}/3 PNGs in dist/assets/`;
+    } else {
+      mascotsDetail = 'dist/ not found — run: npm run build';
+    }
+  }
+  check('Mascot images (3 PNG)', mascotsOk, mascotsDetail);
 
   // Production build
   const distIndex = path.join(ROOT, 'dist', 'index.html');
@@ -259,8 +281,8 @@ async function cmdDoctor() {
   }
   check('HTTP server /health', healthOk, healthDetail);
 
-  // .claude/settings.local.json
-  const settingsPath   = path.join(ROOT, '.claude', 'settings.local.json');
+  // .claude/settings.local.json — lives in the *user's* CWD, not the package dir
+  const settingsPath   = path.join(process.cwd(), '.claude', 'settings.local.json');
   const settingsExists = fs.existsSync(settingsPath);
   check(
     '.claude/settings.local.json',
