@@ -2,10 +2,10 @@
 'use strict';
 
 /**
- * agent-ping — local CLI for the Agent Ping desktop app.
+ * ping-balloon — local CLI for the Ping Balloon desktop app.
  *
  * Usage: node bin/agent-ping.js <command> [args]
- * After `npm link`: agent-ping <command> [args]
+ * After install: ping-balloon <command> [args]
  */
 
 const { spawnSync, spawn } = require('child_process');
@@ -103,7 +103,7 @@ function cmdDev() {
   if (!fs.existsSync(path.join(ROOT, 'src'))) {
     console.error(
       'Dev mode is not available in an installed package.\n' +
-      'To start the app:  agent-ping start',
+      'To start the app:  ping-balloon start',
     );
     process.exit(1);
   }
@@ -123,7 +123,7 @@ function cmdStart() {
     console.error(
       'Production build not found.\n' +
       'Run:  npm run build\n' +
-      'or:   agent-ping dev   (runs Vite + Electron dev mode)',
+      'or:   ping-balloon dev   (runs Vite + Electron dev mode, source clone only)',
     );
     process.exit(1);
   }
@@ -151,7 +151,7 @@ async function cmdHealth() {
     }
   } catch (err) {
     if (err.code === 'ECONNREFUSED') {
-      console.error('Agent Ping is not running.\nStart it with:  agent-ping start');
+      console.error('Ping Balloon is not running.\nStart it with:  ping-balloon start');
     } else {
       console.error(`Health check failed: ${err.message}`);
     }
@@ -164,7 +164,7 @@ async function cmdNotify(args) {
 
   if (!VALID_STATES.includes(state)) {
     console.error(
-      `Usage: agent-ping notify <complete|waiting|permission> [--title ...] [--message ...] [--meta ...]`,
+      `Usage: ping-balloon notify <complete|waiting|permission> [--title ...] [--message ...] [--meta ...]`,
     );
     process.exit(1);
   }
@@ -182,7 +182,7 @@ async function cmdNotify(args) {
     }
   } catch (err) {
     if (err.code === 'ECONNREFUSED') {
-      console.error('Agent Ping is not running.\nStart it with:  agent-ping start');
+      console.error('Ping Balloon is not running.\nStart it with:  ping-balloon start');
     } else {
       console.error(`Notify failed: ${err.message}`);
     }
@@ -198,7 +198,7 @@ function cmdHooks(args) {
   };
 
   if (!scripts[sub]) {
-    console.error('Usage: agent-ping hooks <install|uninstall>');
+    console.error('Usage: ping-balloon hooks <install|uninstall>');
     process.exit(1);
   }
 
@@ -276,7 +276,7 @@ async function cmdDoctor() {
       : `unexpected response: ${JSON.stringify(res.body)}`;
   } catch (err) {
     healthDetail = err.code === 'ECONNREFUSED'
-      ? 'app not running — start with: agent-ping start'
+      ? 'app not running — start with: ping-balloon start'
       : err.message;
   }
   check('HTTP server /health', healthOk, healthDetail);
@@ -287,12 +287,12 @@ async function cmdDoctor() {
   check(
     '.claude/settings.local.json',
     settingsExists,
-    settingsExists ? '' : 'run: agent-ping hooks install',
+    settingsExists ? '' : 'run: ping-balloon hooks install',
   );
 
   // Agent Ping hooks
   let hooksOk     = false;
-  let hooksDetail = 'not installed — run: agent-ping hooks install';
+  let hooksDetail = 'not installed — run: ping-balloon hooks install';
   if (settingsExists) {
     try {
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
@@ -305,7 +305,7 @@ async function cmdDoctor() {
       hooksOk     = !!(hasStop && hasNotif);
       hooksDetail = hooksOk
         ? 'Stop + Notification → claude-hook-notify.js'
-        : 'partial or legacy — run: agent-ping hooks install';
+        : 'partial or legacy — run: ping-balloon hooks install';
     } catch {
       hooksDetail = 'could not parse settings.local.json';
     }
@@ -313,7 +313,7 @@ async function cmdDoctor() {
   check('Claude Code hooks', hooksOk, hooksDetail);
 
   // ── print report ──
-  console.log('\nAgent Ping — Doctor Report\n');
+  console.log('\nPing Balloon — Doctor Report\n');
   for (const c of checks) {
     const icon   = c.ok ? '✓' : '✗';
     const detail = c.detail ? `  ${c.detail}` : '';
@@ -332,37 +332,36 @@ async function cmdDoctor() {
 
 function cmdHelp() {
   console.log(`
-agent-ping — local CLI for the Agent Ping desktop app
+ping-balloon — desktop notification bubble for terminal coding agents
 
 Usage:
-  agent-ping <command> [args]
+  ping-balloon <command> [args]
 
 Commands:
-  dev                       Start in dev mode (Vite dev server + Electron)
+  dev                       Start in dev mode (Vite dev server + Electron, source clone only)
   start                     Start using the production build in dist/
-  health                    Check if the Agent Ping HTTP server is running
+  health                    Check if the Ping Balloon HTTP server is running
   notify <state> [flags]    Send a notification to the bubble
                               states: complete | waiting | permission
                               flags:  --title "..." --message "..." --meta "..."
   hooks install             Install Claude Code hooks in .claude/settings.local.json
-  hooks uninstall           Remove Agent Ping hooks from .claude/settings.local.json
+  hooks uninstall           Remove Ping Balloon hooks from .claude/settings.local.json
   doctor                    Run diagnostics and print a health report
   help                      Show this help message
 
 Workflow:
-  Development:   agent-ping dev
-  Production:    npm run build && agent-ping start
+  Production:    ping-balloon start
+  Development:   ping-balloon dev   (requires source clone)
 
 Examples:
-  agent-ping dev
-  agent-ping start
-  agent-ping health
-  agent-ping notify complete
-  agent-ping notify permission --title "Approval needed" --message "Allow bash?"
-  agent-ping notify waiting --message "Waiting for your input..."
-  agent-ping hooks install
-  agent-ping hooks uninstall
-  agent-ping doctor
+  ping-balloon start
+  ping-balloon health
+  ping-balloon notify complete
+  ping-balloon notify permission --title "Approval needed" --message "Allow bash?"
+  ping-balloon notify waiting --message "Waiting for your input..."
+  ping-balloon hooks install
+  ping-balloon hooks uninstall
+  ping-balloon doctor
 `.trimStart());
 }
 
@@ -383,7 +382,7 @@ const [,, cmd, ...rest] = process.argv;
     case '-h':
     case undefined:              cmdHelp();            break;
     default:
-      console.error(`Unknown command: "${cmd}"\nRun 'agent-ping help' for usage.`);
+      console.error(`Unknown command: "${cmd}"\nRun 'ping-balloon help' for usage.`);
       process.exit(1);
   }
 })();

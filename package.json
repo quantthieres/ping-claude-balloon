@@ -1,8 +1,9 @@
 {
-  "name": "agent-ping-desktop",
+  "name": "@quantthieres/ping-balloon",
   "version": "0.1.0",
-  "description": "Agent Ping — floating desktop notification bubble for Claude Code",
+  "description": "Ping Balloon — floating desktop notification bubble for terminal coding agents",
   "keywords": [
+    "ping-balloon",
     "claude-code",
     "electron",
     "notifications",
@@ -14,11 +15,18 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/quantthieres/ping-claude-balloon.git"
+    "url": "git+https://github.com/quantthieres/ping-claude-balloon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/quantthieres/ping-claude-balloon/issues"
+  },
+  "homepage": "https://github.com/quantthieres/ping-claude-balloon#readme",
+  "publishConfig": {
+    "access": "public"
   },
   "main": "electron/main.js",
   "bin": {
-    "agent-ping": "./bin/agent-ping.js"
+    "ping-balloon": "bin/agent-ping.js"
   },
   "files": [
     "bin/",
@@ -55,5 +63,6 @@
     "tailwindcss": "^3.4.15",
     "vite": "^5.4.11",
     "wait-on": "^8.0.1"
-  }
+  },
+  "type": "commonjs"
 }
