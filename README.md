@@ -1,8 +1,8 @@
-# Agent Ping
+# Ping Balloon
 
-> A floating desktop notification bubble for [Claude Code](https://claude.ai/code) — know instantly when your agent is done, waiting for input, or needs permission.
+> A floating desktop notification bubble for terminal coding agents — know instantly when your agent is done, waiting for input, or needs permission.
 
-Agent Ping sits in the corner of your screen and changes state as Claude works:
+Ping Balloon sits in the corner of your screen and changes state as Claude works:
 
 | State | Color | Meaning |
 |---|---|---|
@@ -12,11 +12,13 @@ Agent Ping sits in the corner of your screen and changes state as Claude works:
 
 Clicking the bubble brings your terminal or editor back into focus automatically.
 
+> 🎈 **Claudinho** is the mascot — a friendly balloon character that changes expression with each state.
+
 ---
 
 ## Who is it for?
 
-Developers who run Claude Code in a terminal while working in another window (browser, design tool, docs). Instead of alt-tabbing to check on Claude, Agent Ping tells you what's happening at a glance.
+Developers who run Claude Code in a terminal while working in another window (browser, design tool, docs). Instead of alt-tabbing to check on Claude, Ping Balloon tells you what's happening at a glance.
 
 ---
 
@@ -32,20 +34,43 @@ Developers who run Claude Code in a terminal while working in another window (br
 
 ## Installation
 
-### Option A — Install from local package (no clone required)
+### Option A — npm (global install)
 
 ```bash
-# 1. Get the .tgz from the repository releases
-npm install /path/to/agent-ping-desktop-0.1.0.tgz
-
-# 2. Start the app
-npx agent-ping start
-
-# 3. In a second terminal, verify it's running
-npx agent-ping health
+npm install -g @quantthieres/ping-balloon
+ping-balloon start
 ```
 
-### Option B — Clone and run from source
+In a second terminal, verify it's running:
+
+```bash
+ping-balloon health
+```
+
+### Option B — npx (no global install)
+
+Use the explicit `--package` form to avoid ambiguity:
+
+```bash
+# Start the app
+npx --package=@quantthieres/ping-balloon ping-balloon start
+
+# Check it's running (second terminal)
+npx --package=@quantthieres/ping-balloon ping-balloon health
+
+# Show help
+npx --package=@quantthieres/ping-balloon ping-balloon help
+```
+
+### Option C — GitHub Release (.tgz)
+
+```bash
+# Download the .tgz from the Releases page, then:
+npm install -g /path/to/quantthieres-ping-balloon-0.1.0.tgz
+ping-balloon start
+```
+
+### Option D — Clone and run from source
 
 ```bash
 git clone https://github.com/quantthieres/ping-claude-balloon.git
@@ -53,7 +78,7 @@ cd ping-claude-balloon/agent-ping-desktop
 
 npm install
 npm run build       # generate dist/
-agent-ping start    # production mode
+ping-balloon start  # production mode
 # or
 npm run dev         # development mode (Vite + Electron, hot-reload)
 ```
@@ -61,8 +86,8 @@ npm run dev         # development mode (Vite + Electron, hot-reload)
 After cloning you can also install the CLI globally:
 
 ```bash
-npm link            # makes `agent-ping` available everywhere
-agent-ping help
+npm link            # makes `ping-balloon` available everywhere
+ping-balloon help
 ```
 
 ---
@@ -70,7 +95,7 @@ agent-ping help
 ## CLI Commands
 
 ```
-agent-ping <command> [args]
+ping-balloon <command> [args]
 ```
 
 | Command | Description |
@@ -80,22 +105,22 @@ agent-ping <command> [args]
 | `health` | Check if the HTTP server is reachable |
 | `notify <state>` | Send a state change to the bubble |
 | `hooks install` | Wire Claude Code hooks in `.claude/settings.local.json` |
-| `hooks uninstall` | Remove Agent Ping hooks |
+| `hooks uninstall` | Remove Ping Balloon hooks |
 | `doctor` | Print a full diagnostics report |
 | `help` | Show usage and examples |
 
 ### `notify` flags
 
 ```bash
-agent-ping notify complete
-agent-ping notify waiting  --message "Waiting for your input..."
-agent-ping notify permission --title "Approval needed" --message "Allow bash?" --meta "Bash"
+ping-balloon notify complete
+ping-balloon notify waiting  --message "Waiting for your input..."
+ping-balloon notify permission --title "Approval needed" --message "Allow bash?" --meta "Bash"
 ```
 
 ### `doctor` output
 
 ```
-Agent Ping — Doctor Report
+Ping Balloon — Doctor Report
 
   ✓  Node.js v22.0.0
   ✓  Platform: darwin arm64
@@ -114,7 +139,7 @@ All checks passed.
 
 ## HTTP API
 
-When Agent Ping is running it exposes a local server on `http://127.0.0.1:47321`.
+When Ping Balloon is running it exposes a local server on `http://127.0.0.1:47321`.
 
 ### GET /health
 
@@ -142,16 +167,16 @@ curl -X POST http://127.0.0.1:47321/notify \
 
 ## Claude Code Integration
 
-Agent Ping hooks into Claude Code to update the bubble automatically as Claude works.
+Ping Balloon hooks into Claude Code to update the bubble automatically as Claude works.
 
 ### Install hooks
 
 ```bash
-# Terminal 1 — Agent Ping must be running
-agent-ping start
+# Terminal 1 — Ping Balloon must be running
+ping-balloon start
 
 # Terminal 2
-agent-ping hooks install
+ping-balloon hooks install
 ```
 
 This writes to `.claude/settings.local.json` (project-scoped, git-ignored). Hooks from other tools are preserved.
@@ -180,10 +205,10 @@ Each hook invocation appends a JSON line with timestamp, event, payload, chosen 
 ### Remove hooks
 
 ```bash
-agent-ping hooks uninstall
+ping-balloon hooks uninstall
 ```
 
-Only Agent Ping entries are removed. Other hooks in the same file are preserved.
+Only Ping Balloon entries are removed. Other hooks in the same file are preserved.
 
 ---
 
@@ -226,7 +251,7 @@ The Windows foreground lock may cause the app to only flash in the taskbar rathe
 | `npm run dev` | Start Vite + Electron in development mode |
 | `npm run build` | Build the React app into `dist/` |
 | `npm start` | Start Electron loading `dist/` (production) |
-| `npm run doctor` | Run `agent-ping doctor` |
+| `npm run doctor` | Run `ping-balloon doctor` |
 | `npm run health` | Check if the server is up |
 | `npm run notify:complete` | Send `complete` state |
 | `npm run notify:waiting` | Send `waiting` state |
@@ -242,14 +267,14 @@ Use this checklist before tagging a release.
 
 **App startup**
 - [ ] `npm run build` completes without errors
-- [ ] `agent-ping start` opens the Electron window
+- [ ] `ping-balloon start` opens the Electron window
 - [ ] Window appears in the top-right corner, always on top
-- [ ] `agent-ping health` returns `{"ok":true,"app":"agent-ping"}`
+- [ ] `ping-balloon health` returns `{"ok":true,"app":"agent-ping"}`
 
 **Bubble states**
-- [ ] `agent-ping notify complete` → green bubble, DONE label
-- [ ] `agent-ping notify waiting` → blue bubble, IDLE label, bob animation
-- [ ] `agent-ping notify permission` → amber bubble, HOLD label, shake animation
+- [ ] `ping-balloon notify complete` → green bubble, DONE label
+- [ ] `ping-balloon notify waiting` → blue bubble, IDLE label, bob animation
+- [ ] `ping-balloon notify permission` → amber bubble, HOLD label, shake animation
 - [ ] Dismiss button (×) hides the bubble
 - [ ] Next notify event makes the bubble reappear
 
@@ -261,27 +286,27 @@ Use this checklist before tagging a release.
 - [ ] Clicking the bubble focuses the active terminal app
 
 **Claude Code hooks**
-- [ ] `agent-ping hooks install` writes to `.claude/settings.local.json`
+- [ ] `ping-balloon hooks install` writes to `.claude/settings.local.json`
 - [ ] Running a Claude Code prompt triggers the `Stop` hook → bubble shows `complete`
-- [ ] `agent-ping hooks uninstall` removes entries without touching other hooks
+- [ ] `ping-balloon hooks uninstall` removes entries without touching other hooks
 
 **CLI edge cases**
-- [ ] `agent-ping notify invalid` → error message, exit 1
-- [ ] `agent-ping foobar` → "Unknown command", exit 1
-- [ ] `agent-ping health` when app is not running → clear error, exit 1
-- [ ] `agent-ping start` when `dist/` is missing → clear error, exit 1
-- [ ] `agent-ping doctor` reports all ✓ when everything is set up
+- [ ] `ping-balloon notify invalid` → error message, exit 1
+- [ ] `ping-balloon foobar` → "Unknown command", exit 1
+- [ ] `ping-balloon health` when app is not running → clear error, exit 1
+- [ ] `ping-balloon start` when `dist/` is missing → clear error, exit 1
+- [ ] `ping-balloon doctor` reports all ✓ when everything is set up
 
 **Package**
 - [ ] `npm pack --dry-run` shows only expected files (no `src/`, `node_modules/`, `.claude/`)
-- [ ] Installing the `.tgz` in a fresh directory: `npx agent-ping start` works
-- [ ] `npx agent-ping doctor` shows ✓ for Electron, mascots, and dist/
+- [ ] Installing the `.tgz` in a fresh directory: `ping-balloon start` works
+- [ ] `ping-balloon doctor` shows ✓ for Electron, mascots, and dist/
 
 ---
 
 ## Known Limitations
 
-- **`agent-ping dev`** is only available when running from the source repository (requires `src/` and the Vite toolchain). It shows a clear error if run from an installed package.
+- **`ping-balloon dev`** is only available when running from the source repository (requires `src/` and the Vite toolchain). It shows a clear error if run from an installed package.
 - Hook routing (`permission` vs `waiting`) depends on the text in Claude Code's Notification payload. If Claude Code changes its message format a keyword update in `scripts/claude-hook-notify.js` may be needed.
 - On `Stop`, the hook cannot distinguish a successful task from a cancelled one — always shows `complete`.
 - Multiple rapid Notifications overwrite each other; the bubble shows the last state received.
@@ -305,7 +330,7 @@ npm run dev       # Vite hot-reload + Electron
 ```
 agent-ping-desktop/
 ├── bin/
-│   └── agent-ping.js            ← CLI entry point
+│   └── agent-ping.js            ← CLI entry point (ping-balloon command)
 ├── electron/
 │   ├── main.js                  ← Electron main process + HTTP server
 │   ├── preload.js               ← IPC bridge (contextBridge)
@@ -335,7 +360,7 @@ agent-ping-desktop/
 
 ```bash
 npm run build           # build React app into dist/
-npm pack                # creates agent-ping-desktop-x.y.z.tgz (runs build first)
+npm pack                # creates quantthieres-ping-balloon-x.y.z.tgz (runs build first)
 npm pack --dry-run      # preview contents without creating the file
 ```
 

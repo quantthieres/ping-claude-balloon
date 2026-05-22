@@ -71,9 +71,9 @@ function main() {
   console.log('');
   console.log('Claude Code hooks installed in .claude/settings.local.json');
   console.log('');
-  console.log('  Notification (permission keyword)  →  agent-ping: permission (amber)');
-  console.log('  Notification (other)               →  agent-ping: waiting   (blue)');
-  console.log('  Stop                               →  agent-ping: complete  (green)');
+  console.log('  Notification (permission keyword)  →  ping-balloon: permission (amber)');
+  console.log('  Notification (other)               →  ping-balloon: waiting   (blue)');
+  console.log('  Stop                               →  ping-balloon: complete  (green)');
   console.log('');
   console.log('Hook script:  scripts/claude-hook-notify.js');
   console.log('');
@@ -81,11 +81,11 @@ function main() {
   console.log('  AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop');
   console.log('');
   console.log('Quick test:');
-  console.log('  Terminal 1:  npm run dev');
+  console.log('  Terminal 1:  ping-balloon start');
   console.log('  Terminal 2:  open Claude Code in this project and run a prompt');
   console.log('  On Stop the bubble should appear in "complete" state.');
   console.log('');
-  console.log('To remove:  npm run hooks:uninstall');
+  console.log('To remove:  ping-balloon hooks uninstall');
 }
 
 main();

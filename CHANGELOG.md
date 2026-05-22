@@ -7,10 +7,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+**Package**
+- Published as `@quantthieres/ping-balloon` on npm
+- CLI command: `ping-balloon`
+
 **App**
 - Electron + React floating notification bubble, frameless and always-on-top
 - Three visual states: `complete` (green), `waiting` (blue), `permission` (amber)
-- Animated mascot per state: bob animation for waiting, shake for permission
+- Animated mascot (Claudinho) per state: bob animation for waiting, shake for permission
 - Light/dark theme toggle
 - Bubble dismiss button; re-appears automatically on the next notify event
 
@@ -19,8 +23,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `GET /health` — liveness check
 - `POST /notify` — trigger a state change with optional `title`, `message`, `meta`
 
-**CLI (`agent-ping`)**
-- `dev` — start in development mode (Vite + Electron, hot-reload)
+**CLI (`ping-balloon`)**
+- `dev` — start in development mode (Vite + Electron, hot-reload, source clone only)
 - `start` — start using the production build in `dist/`
 - `health` — check if the HTTP server is reachable
 - `notify <state>` — send a notification with optional `--title`, `--message`, `--meta`
@@ -41,5 +45,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 **Packaging**
 - `npm pack` ready: `files` field, `prepack` builds automatically
 - `electron` in `dependencies` so the installed package is self-contained
-- `agent-ping dev` gracefully blocked when `src/` is absent (installed package context)
+- `ping-balloon dev` gracefully blocked when `src/` is absent (installed package context)
 - Cross-platform dev startup via `scripts/electron-dev.js` (no Unix-only env var syntax)
