@@ -1,171 +1,120 @@
-# agent-ping-desktop
+# Agent Ping
 
-MVP do Agent Ping como app Electron + React. Janela flutuante (frameless, transparent, alwaysOnTop) que exibe a bolha de notificação nos três estados. A partir da fase 2, a bolha pode ser acionada por qualquer processo local via HTTP.
+> A floating desktop notification bubble for [Claude Code](https://claude.ai/code) — know instantly when your agent is done, waiting for input, or needs permission.
 
-## Requisitos
+Agent Ping sits in the corner of your screen and changes state as Claude works:
 
-- Node.js >= 18
-- npm >= 9
+| State | Color | Meaning |
+|---|---|---|
+| **complete** | Green | Task finished — Claude stopped |
+| **waiting** | Blue | Claude is idle, waiting for your next prompt |
+| **permission** | Amber | Claude needs your approval to continue |
 
-## Como rodar
+Clicking the bubble brings your terminal or editor back into focus automatically.
 
-### Modo de desenvolvimento
+---
 
-```bash
-cd agent-ping-desktop
-npm install
-npm run dev        # Vite + Electron (hot-reload)
-# ou
-agent-ping dev     # equivalente, via CLI
-```
+## Who is it for?
 
-O Vite sobe em `localhost:5173` e o Electron abre automaticamente.
-`scripts/electron-dev.js` seta `AGENT_PING_DEV=1` via `spawn` (funciona em macOS, Linux e Windows), sinalizando ao Electron para carregar o dev server em vez de `dist/`.
+Developers who run Claude Code in a terminal while working in another window (browser, design tool, docs). Instead of alt-tabbing to check on Claude, Agent Ping tells you what's happening at a glance.
 
-### Modo de produção local
+---
 
-```bash
-npm run build      # gera dist/
-agent-ping start   # inicia Electron carregando dist/index.html
-# ou
-npm run app:start  # equivalente sem a CLI
-```
+## Requirements
 
-> Publicação via npm/npx virá em fase futura. Por ora a CLI funciona
-> localmente com `npm link`.
+- **Node.js** >= 18
+- **macOS** (10.15+) or **Windows** (10+)
+- [Claude Code](https://claude.ai/code) for hook integration (optional but recommended)
 
-## CLI local
+> Linux is not tested. The Electron app may work but terminal focus is not implemented.
 
-O projeto inclui uma CLI unificada em `bin/agent-ping.js`.
+---
 
-### Usar sem instalar
+## Installation
+
+### Option A — Install from local package (no clone required)
 
 ```bash
-node bin/agent-ping.js help
-node bin/agent-ping.js doctor
-node bin/agent-ping.js dev           # desenvolvimento (Vite + Electron)
-node bin/agent-ping.js start         # produção (usa dist/)
-node bin/agent-ping.js health
-node bin/agent-ping.js notify permission
-node bin/agent-ping.js notify complete --title "Deploy OK" --message "v2.4.1"
-node bin/agent-ping.js hooks install
-node bin/agent-ping.js hooks uninstall
-```
+# 1. Get the .tgz from the repository releases
+npm install /path/to/agent-ping-desktop-0.1.0.tgz
 
-### Instalar globalmente com npm link
-
-```bash
-# Na raiz do projeto
-npm link
-
-# Agora disponível globalmente
-agent-ping help
-agent-ping doctor
-agent-ping dev              # development (apenas dentro do repo)
-agent-ping start            # production (requer build prévio)
-agent-ping health
-agent-ping notify waiting
-agent-ping hooks install
-```
-
-Para desfazer: `npm unlink` na raiz do projeto.
-
-### Distribuição local via npm pack
-
-Use `npm pack` para gerar um arquivo `.tgz` que pode ser instalado em qualquer projeto sem publicar no npm registry.
-
-```bash
-# Na raiz do repo — build é executado automaticamente pelo prepack
-npm pack
-# → gera agent-ping-desktop-0.1.0.tgz
-
-# Em outro diretório (simulando instalação em projeto externo)
-mkdir ../meu-projeto && cd ../meu-projeto
-npm init -y
-npm install ../agent-ping-desktop/agent-ping-desktop-0.1.0.tgz
-
-# Usar via npx (sem npm link)
-npx agent-ping help
-npx agent-ping doctor
+# 2. Start the app
 npx agent-ping start
+
+# 3. In a second terminal, verify it's running
 npx agent-ping health
-npx agent-ping notify permission
-npx agent-ping hooks install
 ```
 
-**O que está incluído no pacote** (campo `files` em package.json):
-
-| Pasta/arquivo | Conteúdo                               |
-|---------------|----------------------------------------|
-| `bin/`        | CLI entry point                        |
-| `electron/`   | Electron main process                  |
-| `scripts/`    | Hook notify + install/uninstall        |
-| `dist/`       | App React compilado (gerado pelo build)|
-| `README.md`   | Documentação                           |
-
-**O que NÃO entra no pacote:** `src/`, `node_modules/`, `.claude/`, arquivos de config do Vite/Tailwind.
-
-> Publicação no npm registry virá em fase futura.
-
-#### Limitações do modo instalado via tgz
-
-- `agent-ping dev` não funciona (requer `src/` e o toolchain Vite, não incluídos no pacote)
-- `agent-ping start` funciona com o `dist/` embutido no pacote
-- `agent-ping hooks install` instala os hooks no `.claude/` do **diretório atual** (não no pacote)
-
-### Comandos
-
-| Comando                        | O que faz                                            |
-|-------------------------------|-------------------------------------------------------|
-| `agent-ping dev`              | Inicia em dev mode (Vite + Electron, hot-reload)      |
-| `agent-ping start`            | Inicia usando o build de produção em `dist/`          |
-| `agent-ping health`           | Verifica se o servidor HTTP está rodando              |
-| `agent-ping notify <state>`   | Envia notificação à bolha (`complete`, `waiting`, `permission`) |
-| `agent-ping hooks install`    | Instala hooks do Claude Code                          |
-| `agent-ping hooks uninstall`  | Remove os hooks do Claude Code                        |
-| `agent-ping doctor`           | Diagnóstico completo do ambiente                      |
-| `agent-ping help`             | Mostra ajuda e exemplos                               |
-
-Flags aceitas por `notify`:
+### Option B — Clone and run from source
 
 ```bash
-agent-ping notify permission \
-  --title "Aprovação necessária" \
-  --message "Allow bash execution?" \
-  --meta "ferramenta: Bash"
+git clone https://github.com/quantthieres/ping-claude-balloon.git
+cd ping-claude-balloon/agent-ping-desktop
+
+npm install
+npm run build       # generate dist/
+agent-ping start    # production mode
+# or
+npm run dev         # development mode (Vite + Electron, hot-reload)
 ```
 
-### npm run cli e npm run doctor
+After cloning you can also install the CLI globally:
 
 ```bash
-npm run cli -- help     # equivale a node bin/agent-ping.js help
-npm run doctor          # equivale a node bin/agent-ping.js doctor
+npm link            # makes `agent-ping` available everywhere
+agent-ping help
 ```
 
-## Scripts npm
+---
 
-| Comando                  | O que faz                                              |
-|--------------------------|--------------------------------------------------------|
-| `npm run dev`            | Inicia Vite + Electron em modo de desenvolvimento      |
-| `npm run build`          | Gera bundle de produção em `dist/`                     |
-| `npm start`              | Roda Electron carregando `dist/` (produção)            |
-| `npm run app:start`      | Alias para `npm start`                                 |
-| `npm run cli`            | Acessa a CLI (`node bin/agent-ping.js`)                |
-| `npm run doctor`         | Roda diagnóstico (`agent-ping doctor`)                 |
-| `npm run health`         | Verifica se o app está rodando                         |
-| `npm run notify:complete`   | Envia evento `complete` para a bolha               |
-| `npm run notify:waiting`    | Envia evento `waiting` para a bolha                |
-| `npm run notify:permission` | Envia evento `permission` para a bolha             |
-| `npm run hooks:install`     | Instala hooks do Claude Code em `.claude/settings.local.json` |
-| `npm run hooks:uninstall`   | Remove os hooks do Claude Code                     |
-
-## Servidor HTTP local
-
-Quando o app está rodando, ele expõe um servidor HTTP em:
+## CLI Commands
 
 ```
-http://127.0.0.1:47321
+agent-ping <command> [args]
 ```
+
+| Command | Description |
+|---|---|
+| `dev` | Start in dev mode — Vite dev server + Electron (requires source clone) |
+| `start` | Start using the production build in `dist/` |
+| `health` | Check if the HTTP server is reachable |
+| `notify <state>` | Send a state change to the bubble |
+| `hooks install` | Wire Claude Code hooks in `.claude/settings.local.json` |
+| `hooks uninstall` | Remove Agent Ping hooks |
+| `doctor` | Print a full diagnostics report |
+| `help` | Show usage and examples |
+
+### `notify` flags
+
+```bash
+agent-ping notify complete
+agent-ping notify waiting  --message "Waiting for your input..."
+agent-ping notify permission --title "Approval needed" --message "Allow bash?" --meta "Bash"
+```
+
+### `doctor` output
+
+```
+Agent Ping — Doctor Report
+
+  ✓  Node.js v22.0.0
+  ✓  Platform: darwin arm64
+  ✓  package.json
+  ✓  Electron installed
+  ✓  Mascot images (3 PNG)
+  ✓  Production build (dist/)
+  ✓  HTTP server /health  http://127.0.0.1:47321
+  ✓  .claude/settings.local.json
+  ✓  Claude Code hooks  Stop + Notification → claude-hook-notify.js
+
+All checks passed.
+```
+
+---
+
+## HTTP API
+
+When Agent Ping is running it exposes a local server on `http://127.0.0.1:47321`.
 
 ### GET /health
 
@@ -182,256 +131,215 @@ curl -X POST http://127.0.0.1:47321/notify \
   -d '{"state":"complete"}'
 ```
 
-Campos aceitos:
+| Field | Type | Required |
+|---|---|---|
+| `state` | `"complete"` \| `"waiting"` \| `"permission"` | ✓ |
+| `title` | string | — |
+| `message` | string | — |
+| `meta` | string | — |
 
-| Campo     | Tipo                                    | Obrigatório |
-|-----------|-----------------------------------------|-------------|
-| `state`   | `"complete"` \| `"waiting"` \| `"permission"` | ✓  |
-| `title`   | string                                  | —           |
-| `message` | string                                  | —           |
-| `meta`    | string ou string[]                      | —           |
+---
 
-Quando `title`, `message` ou `meta` são omitidos, a bolha usa os textos padrão de demonstração para aquele estado.
+## Claude Code Integration
 
-### Testando com npm scripts
+Agent Ping hooks into Claude Code to update the bubble automatically as Claude works.
 
-Com o app rodando em um terminal:
-
-```bash
-# Em outro terminal:
-npm run notify:complete
-npm run notify:waiting
-npm run notify:permission
-npm run health
-```
-
-Se o app não estiver rodando:
-
-```
-Agent Ping app is not running. Start it with npm run dev.
-```
-
-### Enviando conteúdo customizado
+### Install hooks
 
 ```bash
-node scripts/notify.js complete \
-  --title "Deploy finalizado" \
-  --message "prod v2.4.1 deploy OK · 3 serviços" \
-  --meta "2m 14s"
-```
-
-## Clique na bolha — foco no terminal
-
-Clicar no card da bolha tenta trazer para frente o terminal ou editor configurado. O comportamento é **best-effort**: sistemas operacionais impõem restrições ao foco programático de janelas, então o resultado pode variar conforme o estado do sistema.
-
-### macOS
-
-Os apps são tentados nesta ordem de prioridade:
-
-| Prioridade | App                | Processo (`pgrep`) |
-|------------|--------------------|--------------------|
-| 1          | Warp               | `Warp`             |
-| 2          | iTerm2             | `iTerm2`           |
-| 3          | Terminal           | `Terminal`         |
-| 4          | Visual Studio Code | `Code`             |
-
-Usa AppleScript (`tell application "X" to activate`). Na primeira execução, macOS pode solicitar permissão de Automação — aceite para que o foco funcione.
-
-### Windows
-
-Os apps são tentados nesta ordem de prioridade:
-
-| Prioridade | App                | Processos verificados     |
-|------------|--------------------|---------------------------|
-| 1          | Windows Terminal   | `WindowsTerminal`         |
-| 2          | PowerShell         | `pwsh`, `powershell`      |
-| 3          | cmd                | `cmd`                     |
-| 4          | Visual Studio Code | `Code`                    |
-
-Usa PowerShell + `Microsoft.VisualBasic.Interaction.AppActivate` com o PID do processo. O "foreground lock" do Windows pode impedir o foco completo em alguns cenários — o app pode apenas piscar na barra de tarefas.
-
-## Integração com Claude Code hooks
-
-> **Escopo:** a integração é **local ao projeto**. Os hooks são gravados em
-> `.claude/settings.local.json` (ignorado pelo git) e não afetam outros
-> projetos nem a configuração global do Claude Code em `~/.claude/settings.json`.
-
-### Instalar
-
-```bash
-# Terminal 1 — app deve estar rodando para os hooks funcionarem
-npm run dev
+# Terminal 1 — Agent Ping must be running
+agent-ping start
 
 # Terminal 2
-npm run hooks:install
+agent-ping hooks install
 ```
 
-O script cria ou edita `.claude/settings.local.json`, sempre fazendo um
-backup com timestamp antes de alterar qualquer coisa.
+This writes to `.claude/settings.local.json` (project-scoped, git-ignored). Hooks from other tools are preserved.
 
-### Mapeamento de eventos → estados visuais
+### State mapping
 
-O roteamento é feito pelo script `scripts/claude-hook-notify.js`, que lê o
-payload JSON enviado pelo Claude Code via stdin e decide qual estado exibir:
+| Claude Code event | Condition | Bubble state |
+|---|---|---|
+| `Stop` | always | `complete` (green) |
+| `Notification` | message contains a permission keyword | `permission` (amber) |
+| `Notification` | anything else | `waiting` (blue) |
 
-| Evento Claude Code | Condição                              | Estado da bolha          |
-|--------------------|---------------------------------------|--------------------------|
-| `Stop`             | sempre                                | `complete` (verde — DONE)|
-| `Notification`     | mensagem contém palavra de permissão  | `permission` (âmbar — HOLD) |
-| `Notification`     | qualquer outro conteúdo               | `waiting` (azul — IDLE)  |
+**Permission keywords** (case-insensitive): `permission`, `allow`, `approve`, `authorize`, `grant`, `blocked`, `requires approval`, `do you want to`, `confirm`
 
-**Palavras-chave que ativam o estado `permission`** (busca case-insensitive
-na mensagem da notificação):
+The routing depends on the actual payload Claude Code sends. If the message contains none of these keywords the default is `waiting`.
 
-```
-permission, allow, approve, authorize, grant, blocked,
-requires approval, do you want to, do you wish to, confirm
-```
-
-O roteamento de `permission` vs `waiting` depende do payload real que o
-Claude Code envia na notificação. Se a mensagem não contiver nenhuma dessas
-palavras, o estado padrão é `waiting`.
-
-### Modo debug
-
-Para inspecionar o que está acontecendo nos hooks:
+### Debug mode
 
 ```bash
 AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop
-```
-
-Quando a variável `AGENT_PING_HOOK_DEBUG=1` está ativa, o script grava
-entradas JSON em `.claude/agent-ping-hook-debug.log`:
-
-```json
-{"ts":"2026-05-21T15:30:00.000Z","type":"input","hookEvent":"Stop","payload":{...}}
-{"ts":"2026-05-21T15:30:00.000Z","type":"decision","state":"complete"}
-{"ts":"2026-05-21T15:30:00.000Z","type":"result","ok":true,"status":200}
-```
-
-Para ativar durante uma sessão de Claude Code, defina a variável antes de
-abrir o Claude Code ou adicione-a ao hook command manualmente.
-
-### Remover
-
-```bash
-npm run hooks:uninstall
-```
-
-Remove as entradas adicionadas pelo Agent Ping (tanto as do script legado
-`notify.js` quanto as do novo `claude-hook-notify.js`). Outras hooks
-configuradas pelo usuário são preservadas.
-
-### Teste manual
-
-```
-Terminal 1:  npm run dev           ← Agent Ping rodando
-Terminal 2:  npm run hooks:install ← instala os hooks
-
-Abra Claude Code neste projeto e execute um prompt qualquer.
-  ✓ Ao terminar (Stop)                → bolha aparece no estado verde (done)
-  ✓ Notificação com palavra de permissão → bolha aparece no estado âmbar (hold)
-  ✓ Notificação genérica              → bolha aparece no estado azul (waiting)
-```
-
-Para testar os estados manualmente (sem Claude Code):
-
-```bash
-npm run notify:complete    # verde — done
-npm run notify:waiting     # azul — idle
-npm run notify:permission  # âmbar — hold
-```
-
-Para testar o script de hook diretamente, simulando o payload do Claude Code:
-
-```bash
-# Simular evento Stop
-echo '{"hook_event_name":"Stop","session_id":"test"}' | \
-  node scripts/claude-hook-notify.js Stop
-
-# Simular Notification com permissão
-echo '{"hook_event_name":"Notification","message":"Claude needs permission to run bash"}' | \
-  node scripts/claude-hook-notify.js Notification
-
-# Simular Notification genérica (waiting)
-echo '{"hook_event_name":"Notification","message":"Task is running..."}' | \
-  node scripts/claude-hook-notify.js Notification
-
-# Com debug ativo
-AGENT_PING_HOOK_DEBUG=1 \
-  echo '{"hook_event_name":"Stop"}' | \
-  node scripts/claude-hook-notify.js Stop
 cat .claude/agent-ping-hook-debug.log
 ```
 
-### Comportamento se o app não estiver rodando
+Each hook invocation appends a JSON line with timestamp, event, payload, chosen state, and HTTP result.
 
-O comando do hook termina com `>/dev/null 2>&1 || true` — sem saída e
-sempre com exit 0. Claude Code nunca recebe um erro e continua funcionando
-normalmente. O script também tem timeout de 3 segundos na requisição HTTP,
-então não bloqueia mesmo se o servidor não responder.
+### Remove hooks
 
-### Limitações conhecidas
+```bash
+agent-ping hooks uninstall
+```
 
-- Os hooks disparam uma vez por `Stop` / `Notification`. Se o Claude Code
-  disparar múltiplas notificações em sequência, a bolha exibe o último
-  estado recebido.
-- O roteamento `permission` vs `waiting` depende do texto real que o
-  Claude Code envia no campo `message` da notificação. Se o formato mudar
-  em versões futuras do Claude Code, pode ser necessário ajustar as
-  palavras-chave em `scripts/claude-hook-notify.js`.
-- Em `Stop`, o hook não distingue tarefa bem-sucedida de interrompida —
-  sempre exibe `complete`.
+Only Agent Ping entries are removed. Other hooks in the same file are preserved.
 
-## Estados
+---
 
-| API state    | Visual                         |
-|--------------|-------------------------------|
-| `complete`   | Verde — DONE                  |
-| `waiting`    | Azul — IDLE (mascote com bob) |
-| `permission` | Âmbar — HOLD (mascote shake)  |
+## Terminal Focus on Click
 
-## Interface de demonstração
+Clicking the notification bubble tries to bring your terminal or editor to the front.
 
-A barra de controle na janela permite alternar estados manualmente:
+### macOS
 
-- **done** — `task-complete` (verde)
-- **idle** — `waiting-for-input` (azul)
-- **hold** — `permission-needed` (âmbar)
+Apps tried in order (AppleScript `tell application X to activate`):
 
-O botão **◑ / ◐** alterna entre tema claro e escuro.
+| Priority | App |
+|---|---|
+| 1 | Warp |
+| 2 | iTerm2 |
+| 3 | Terminal |
+| 4 | Visual Studio Code |
 
-O **×** da bolha esconde a bolha; clique no placeholder pontilhado ou em qualquer botão de estado para reexibi-la. Um novo evento `/notify` também a reexibe automaticamente.
+On first run macOS may ask for Automation permission — accept it for focus to work.
 
-## Estrutura
+### Windows
+
+Apps tried in order (PowerShell `AppActivate` by PID):
+
+| Priority | App |
+|---|---|
+| 1 | Windows Terminal |
+| 2 | PowerShell (`pwsh`, `powershell`) |
+| 3 | cmd |
+| 4 | Visual Studio Code |
+
+The Windows foreground lock may cause the app to only flash in the taskbar rather than fully focus.
+
+---
+
+## npm Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Vite + Electron in development mode |
+| `npm run build` | Build the React app into `dist/` |
+| `npm start` | Start Electron loading `dist/` (production) |
+| `npm run doctor` | Run `agent-ping doctor` |
+| `npm run health` | Check if the server is up |
+| `npm run notify:complete` | Send `complete` state |
+| `npm run notify:waiting` | Send `waiting` state |
+| `npm run notify:permission` | Send `permission` state |
+| `npm run hooks:install` | Install Claude Code hooks |
+| `npm run hooks:uninstall` | Remove Claude Code hooks |
+
+---
+
+## Manual Test Checklist
+
+Use this checklist before tagging a release.
+
+**App startup**
+- [ ] `npm run build` completes without errors
+- [ ] `agent-ping start` opens the Electron window
+- [ ] Window appears in the top-right corner, always on top
+- [ ] `agent-ping health` returns `{"ok":true,"app":"agent-ping"}`
+
+**Bubble states**
+- [ ] `agent-ping notify complete` → green bubble, DONE label
+- [ ] `agent-ping notify waiting` → blue bubble, IDLE label, bob animation
+- [ ] `agent-ping notify permission` → amber bubble, HOLD label, shake animation
+- [ ] Dismiss button (×) hides the bubble
+- [ ] Next notify event makes the bubble reappear
+
+**Theme**
+- [ ] ◑/◐ button toggles light/dark theme correctly
+
+**Bubble click — terminal focus** (macOS)
+- [ ] Clicking the bubble focuses the active terminal app
+
+**Claude Code hooks**
+- [ ] `agent-ping hooks install` writes to `.claude/settings.local.json`
+- [ ] Running a Claude Code prompt triggers the `Stop` hook → bubble shows `complete`
+- [ ] `agent-ping hooks uninstall` removes entries without touching other hooks
+
+**CLI edge cases**
+- [ ] `agent-ping notify invalid` → error message, exit 1
+- [ ] `agent-ping foobar` → "Unknown command", exit 1
+- [ ] `agent-ping health` when app is not running → clear error, exit 1
+- [ ] `agent-ping start` when `dist/` is missing → clear error, exit 1
+- [ ] `agent-ping doctor` reports all ✓ when everything is set up
+
+**Package**
+- [ ] `npm pack --dry-run` shows only expected files (no `src/`, `node_modules/`, `.claude/`)
+- [ ] Installing the `.tgz` in a fresh directory: `npx agent-ping start` works
+- [ ] `npx agent-ping doctor` shows ✓ for Electron, mascots, and dist/
+
+---
+
+## Known Limitations
+
+- **`agent-ping dev`** is only available when running from the source repository (requires `src/` and the Vite toolchain). It shows a clear error if run from an installed package.
+- Hook routing (`permission` vs `waiting`) depends on the text in Claude Code's Notification payload. If Claude Code changes its message format a keyword update in `scripts/claude-hook-notify.js` may be needed.
+- On `Stop`, the hook cannot distinguish a successful task from a cancelled one — always shows `complete`.
+- Multiple rapid Notifications overwrite each other; the bubble shows the last state received.
+- Linux is not tested. The Electron window may open but terminal focus will not work.
+- The app runs on a fixed port (47321). If that port is in use, the server will fail silently.
+
+---
+
+## Development
+
+```bash
+git clone https://github.com/quantthieres/ping-claude-balloon.git
+cd ping-claude-balloon/agent-ping-desktop
+
+npm install       # installs all dependencies + devDependencies
+npm run dev       # Vite hot-reload + Electron
+```
+
+### Project structure
 
 ```
 agent-ping-desktop/
 ├── bin/
-│   └── agent-ping.js            ← CLI unificada (entry point do "bin" no package.json)
+│   └── agent-ping.js            ← CLI entry point
 ├── electron/
-│   ├── main.js          ← Electron main process + servidor HTTP
-│   └── preload.js       ← IPC bridge (contextBridge)
+│   ├── main.js                  ← Electron main process + HTTP server
+│   ├── preload.js               ← IPC bridge (contextBridge)
+│   └── focus-terminal.js        ← macOS/Windows terminal focus
 ├── scripts/
-│   ├── claude-hook-notify.js    ← hook entry point — lê stdin, roteia estado
-│   ├── notify.js                ← helper HTTP para os scripts npm
-│   ├── install-claude-hooks.js  ← instala hooks em .claude/settings.local.json
-│   └── uninstall-claude-hooks.js ← remove os hooks
+│   ├── claude-hook-notify.js    ← Hook entry point (reads stdin, routes state)
+│   ├── electron-dev.js          ← Cross-platform Electron dev launcher
+│   ├── notify.js                ← HTTP helper for npm scripts
+│   ├── install-claude-hooks.js
+│   └── uninstall-claude-hooks.js
 ├── src/
-│   ├── App.jsx          ← Demo com state switcher + listener IPC
-│   ├── main.jsx         ← React entry
-│   ├── index.css        ← Tailwind + reset
+│   ├── App.jsx                  ← State switcher + IPC listener
+│   ├── main.jsx
 │   └── components/
 │       ├── BubbleNotification.jsx
 │       ├── BubbleNotification.css
 │       ├── state-config.js
-│       └── mascots/
-├── index.html
-├── vite.config.js
-├── tailwind.config.js
-└── postcss.config.js
+│       └── mascots/             ← complete.png, waiting.png, permission.png
+├── dist/                        ← Production build (generated)
+├── package.json
+├── README.md
+├── CHANGELOG.md
+└── LICENSE
 ```
 
-## Posição da janela
+### Building the package
 
-Por padrão a janela aparece no canto superior direito da área de trabalho. Para mudar, edite `x` e `y` em `electron/main.js`.
+```bash
+npm run build           # build React app into dist/
+npm pack                # creates agent-ping-desktop-x.y.z.tgz (runs build first)
+npm pack --dry-run      # preview contents without creating the file
+```
+
+---
+
+## License
+
+[MIT](LICENSE) — © 2026 quantthieres
