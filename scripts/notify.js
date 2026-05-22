@@ -37,7 +37,7 @@ function request(method, path, body) {
 
     req.on('error', (err) => {
       if (err.code === 'ECONNREFUSED') {
-        reject(new Error('Agent Ping app is not running. Start it with npm run dev.'));
+        reject(new Error('Ping Balloon is not running. Start it with:  ping-balloon start'));
       } else {
         reject(err);
       }

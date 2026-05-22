@@ -16,6 +16,16 @@ Clicking the bubble brings your terminal or editor back into focus automatically
 
 ---
 
+## Published Package
+
+```bash
+npm install -g @quantthieres/ping-balloon
+```
+
+📦 [npmjs.com/package/@quantthieres/ping-balloon](https://www.npmjs.com/package/@quantthieres/ping-balloon)
+
+---
+
 ## Who is it for?
 
 Developers who run Claude Code in a terminal while working in another window (browser, design tool, docs). Instead of alt-tabbing to check on Claude, Ping Balloon tells you what's happening at a glance.
@@ -34,43 +44,39 @@ Developers who run Claude Code in a terminal while working in another window (br
 
 ## Installation
 
-### Option A — npm (global install)
+### Global install (recommended)
 
 ```bash
 npm install -g @quantthieres/ping-balloon
 ping-balloon start
 ```
 
-In a second terminal, verify it's running:
+Verify it's running in a second terminal:
 
 ```bash
 ping-balloon health
 ```
 
-### Option B — npx (no global install)
+### Without a global install (npx)
 
-Use the explicit `--package` form to avoid ambiguity:
+Use the explicit `--package` form to avoid ambiguity with other commands named `ping-balloon`:
 
 ```bash
-# Start the app
 npx --package=@quantthieres/ping-balloon ping-balloon start
-
-# Check it's running (second terminal)
 npx --package=@quantthieres/ping-balloon ping-balloon health
-
-# Show help
 npx --package=@quantthieres/ping-balloon ping-balloon help
 ```
 
-### Option C — GitHub Release (.tgz)
+### GitHub Release (.tgz)
+
+Download the `.tgz` from the [Releases page](https://github.com/quantthieres/ping-claude-balloon/releases), then:
 
 ```bash
-# Download the .tgz from the Releases page, then:
 npm install -g /path/to/quantthieres-ping-balloon-0.1.0.tgz
 ping-balloon start
 ```
 
-### Option D — Clone and run from source
+### Clone and run from source
 
 ```bash
 git clone https://github.com/quantthieres/ping-claude-balloon.git
@@ -83,11 +89,34 @@ ping-balloon start  # production mode
 npm run dev         # development mode (Vite + Electron, hot-reload)
 ```
 
-After cloning you can also install the CLI globally:
+After cloning you can also link the CLI globally:
 
 ```bash
 npm link            # makes `ping-balloon` available everywhere
 ping-balloon help
+```
+
+---
+
+## Quick Start
+
+```bash
+# Terminal 1 — start the bubble
+ping-balloon start
+
+# Terminal 2 — verify it's up
+ping-balloon health
+
+# Send state changes manually
+ping-balloon notify permission
+ping-balloon notify waiting
+ping-balloon notify complete
+
+# Wire Claude Code hooks in your project root
+ping-balloon hooks install
+
+# Remove hooks when done
+ping-balloon hooks uninstall
 ```
 
 ---
@@ -147,6 +176,8 @@ When Ping Balloon is running it exposes a local server on `http://127.0.0.1:4732
 curl http://127.0.0.1:47321/health
 # → {"ok":true,"app":"agent-ping"}
 ```
+
+> **Note:** `"app":"agent-ping"` is the internal server identifier (legacy name, kept for compatibility). The public product name is Ping Balloon.
 
 ### POST /notify
 
@@ -297,21 +328,30 @@ Use this checklist before tagging a release.
 - [ ] `ping-balloon start` when `dist/` is missing → clear error, exit 1
 - [ ] `ping-balloon doctor` reports all ✓ when everything is set up
 
-**Package**
+**Package (npm)**
 - [ ] `npm pack --dry-run` shows only expected files (no `src/`, `node_modules/`, `.claude/`)
-- [ ] Installing the `.tgz` in a fresh directory: `ping-balloon start` works
-- [ ] `ping-balloon doctor` shows ✓ for Electron, mascots, and dist/
+- [ ] `npm install @quantthieres/ping-balloon` in a clean directory succeeds
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon help` — shows usage
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon doctor` — all checks pass except HTTP server (not running)
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon start` — opens the Electron window
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon notify permission/waiting/complete` — bubble changes state
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon hooks install` — writes `.claude/settings.local.json`
+- [ ] `cat .claude/settings.local.json` — contains `claude-hook-notify.js` commands with absolute path
+- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon hooks uninstall` — removes entries cleanly
 
 ---
 
 ## Known Limitations
 
 - **`ping-balloon dev`** is only available when running from the source repository (requires `src/` and the Vite toolchain). It shows a clear error if run from an installed package.
-- Hook routing (`permission` vs `waiting`) depends on the text in Claude Code's Notification payload. If Claude Code changes its message format a keyword update in `scripts/claude-hook-notify.js` may be needed.
+- Hook routing (`permission` vs `waiting`) depends on the text in Claude Code's Notification payload. If Claude Code changes its message format, a keyword update in `scripts/claude-hook-notify.js` may be needed.
 - On `Stop`, the hook cannot distinguish a successful task from a cancelled one — always shows `complete`.
 - Multiple rapid Notifications overwrite each other; the bubble shows the last state received.
 - Linux is not tested. The Electron window may open but terminal focus will not work.
 - The app runs on a fixed port (47321). If that port is in use, the server will fail silently.
+- **Windows terminal focus** is best-effort: the foreground lock may cause the app to flash in the taskbar rather than fully focus.
+- **Internal identifiers** (`"app":"agent-ping"` in the HTTP response, `agent-ping-hook-debug.log`, `AGENT_PING_HOOK_DEBUG`) are legacy names kept for compatibility and will be updated in a future release.
+- The npm package `@quantthieres/ping-balloon` is published on the public registry. Install with `npm install -g @quantthieres/ping-balloon`.
 
 ---
 
@@ -360,8 +400,9 @@ agent-ping-desktop/
 
 ```bash
 npm run build           # build React app into dist/
-npm pack                # creates quantthieres-ping-balloon-x.y.z.tgz (runs build first)
+npm pack                # creates quantthieres-ping-balloon-0.1.0.tgz (runs build first)
 npm pack --dry-run      # preview contents without creating the file
+npm publish             # publish to npm as @quantthieres/ping-balloon (requires npm login)
 ```
 
 ---

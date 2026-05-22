@@ -107,7 +107,7 @@ function cmdDev() {
     );
     process.exit(1);
   }
-  console.log('Starting Agent Ping in dev mode (Vite + Electron)…');
+  console.log('Starting Ping Balloon in dev mode (Vite + Electron)…');
   console.log('Press Ctrl+C to stop.\n');
   const child = spawn(npmBin(), ['run', 'dev'], { cwd: ROOT, stdio: 'inherit' });
   child.on('error', (err) => {
@@ -128,7 +128,7 @@ function cmdStart() {
     process.exit(1);
   }
 
-  console.log('Starting Agent Ping (production build)…');
+  console.log('Starting Ping Balloon (production build)…');
   console.log('Press Ctrl+C to stop.\n');
 
   const child = spawn(electronBin(), ['.'], { cwd: ROOT, stdio: 'inherit' });
@@ -143,7 +143,7 @@ async function cmdHealth() {
   try {
     const res = await httpGet('/health');
     if (res.body?.ok) {
-      console.log('Agent Ping is running.');
+      console.log('Ping Balloon is running.');
       console.log(JSON.stringify(res.body, null, 2));
     } else {
       console.error('Unexpected response:', JSON.stringify(res.body));

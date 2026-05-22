@@ -3,13 +3,14 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [0.1.0] — 2026-05-21
+## [0.1.0] — 2026-05-22
 
 ### Added
 
 **Package**
-- Published as `@quantthieres/ping-balloon` on npm
+- Published as [`@quantthieres/ping-balloon`](https://www.npmjs.com/package/@quantthieres/ping-balloon) on the public npm registry
 - CLI command: `ping-balloon`
+- Install: `npm install -g @quantthieres/ping-balloon`
 
 **App**
 - Electron + React floating notification bubble, frameless and always-on-top
