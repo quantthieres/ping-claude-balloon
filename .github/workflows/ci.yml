@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Build & verify CLI
+    runs-on: ubuntu-latest
+
+    env:
+      # Skip downloading the Electron binary in CI — we only run vite build
+      # and the CLI help command, neither of which needs the actual executable.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Verify CLI entrypoint
+        run: node bin/agent-ping.js help
+
+      - name: Verify package contents (dry-run)
+        run: npm pack --dry-run
