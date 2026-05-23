@@ -1,18 +1,49 @@
-# Ping Balloon
+<table>
+<tr>
 
-> A floating desktop notification bubble for terminal coding agents — know instantly when your agent is done, waiting for input, or needs permission.
+<td valign="middle">
+
+<pre>
+██████╗ ██╗███╗  ██╗ ██████╗   ██████╗   ████╗ ██╗     ██╗      █████╗  █████╗ ███╗  ██╗
+██╔══██╗██║████╗ ██║██╔════╝   ██╔══██╗██╔══██╗██║     ██║     ██╔══██╗██╔══██╗████╗ ██║
+██████╔╝██║██╔██╗██║██║   ██╗  ██████╦╝███████║██║     ██║     ██║  ██║██║  ██║██╔██╗██║
+██╔═══╝ ██║██║╚████║██║   ██╗  ██╔══██╗██╔══██║██║     ██║     ██║  ██║██║  ██║██║╚████║
+██║     ██║██║ ╚███║╚██████╔╝  ██████╦╝██║  ██║███████╗███████╗╚█████╔╝╚█████╔╝██║ ╚███║
+╚═╝     ╚═╝╚═╝  ╚══╝ ╚═════╝   ╚═════╝  ═╝  ╚═╝╚══════╝╚══════╝ ╚════╝  ╚════╝ ╚═╝  ╚══╝
+</pre>
+
+</td>
+
+<td valign="middle">
+
+<img src="src/components/mascots/complete.png" width="110">
+
+</td>
+
+</tr>
+</table>
+
+</div>
+
+[![npm version](https://img.shields.io/npm/v/@quantthieres/ping-balloon?label=npm&color=CB3837)](https://www.npmjs.com/package/@quantthieres/ping-balloon)
+[![license MIT](https://img.shields.io/npm/l/@quantthieres/ping-balloon?color=2ea44f)](./LICENSE)
+[![CI](https://github.com/quantthieres/ping-claude-balloon/actions/workflows/ci.yml/badge.svg)](https://github.com/quantthieres/ping-claude-balloon/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/quantthieres/ping-claude-balloon?label=release)](https://github.com/quantthieres/ping-claude-balloon/releases)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks-8A2BE2)](https://github.com/quantthieres/ping-claude-balloon)
+[![macOS](https://img.shields.io/badge/macOS-supported-black)](https://github.com/quantthieres/ping-claude-balloon)
+[![Windows](https://img.shields.io/badge/Windows-best--effort-0078D4)](https://github.com/quantthieres/ping-claude-balloon)
+
+> A floating desktop notification bubble for terminal coding agents - know instantly when your agent is done, waiting for input, or needs permission.
 
 Ping Balloon sits in the corner of your screen and changes state as Claude works:
 
 | State | Color | Meaning |
 |---|---|---|
-| **complete** | Green | Task finished — Claude stopped |
+| **complete** | Green | Task finished - Claude stopped |
 | **waiting** | Blue | Claude is idle, waiting for your next prompt |
 | **permission** | Amber | Claude needs your approval to continue |
 
 Clicking the bubble brings your terminal or editor back into focus automatically.
-
-> 🎈 **Claudinho** is the mascot — a friendly balloon character that changes expression with each state.
 
 ---
 
