@@ -155,6 +155,9 @@ ping-balloon notify complete
 ping-balloon notify permission --title "Approval needed" --message "Allow bash?" --meta "Bash"
 ping-balloon notify waiting     # debug/optional — hidden by default from hooks
 ```
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quantthieres/ping-claude-balloon/main/assets/ping-balloon-demo.gif" alt="Ping Balloon demo" width="900">
+</p>
 
 ---
 
