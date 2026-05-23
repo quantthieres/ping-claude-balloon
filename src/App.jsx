@@ -102,7 +102,8 @@ export default function App() {
   const [activeState, setActiveState]       = useState('task-complete');
   const [theme, setTheme]                   = useState('light');
   const [notifyOverride, setNotifyOverride] = useState(null);
-  const autoHideTimer = useRef(null);
+  const autoHideTimer  = useRef(null);
+  const isFocusingRef  = useRef(false);  // guard against concurrent focus calls
 
   // ── Incoming notification handler ────────────────────────────────────────
   useEffect(() => {
@@ -162,21 +163,28 @@ export default function App() {
   };
 
   // ── Click on bubble body — focus terminal then dismiss ───────────────────
-  // The bubble is hidden only when focus succeeds. If no terminal can be
-  // found the bubble stays visible so the user can dismiss manually with ×.
+  // Guard: if a focus call is already in flight (double-click / key repeat),
+  // ignore the duplicate. The bubble is hidden only when focus succeeds.
+  // On failure the bubble stays visible so the user can retry or use ×.
   const handleFocusTerminal = async () => {
-    if (!window.electronAPI?.focusTerminal) {
-      console.log('[ping-balloon] focus terminal (no IPC bridge)');
-      handleDismiss();
-      return;
-    }
-    const result = await window.electronAPI.focusTerminal();
-    if (result?.ok) {
-      console.log(`[ping-balloon] focused ${result.app}`);
-      handleDismiss();
-    } else {
-      console.warn('[ping-balloon] terminal focus failed:', result?.error);
-      // leave the bubble visible — user can retry or dismiss with ×
+    if (isFocusingRef.current) return;
+    isFocusingRef.current = true;
+
+    try {
+      if (!window.electronAPI?.focusTerminal) {
+        console.log('[ping-balloon] focus terminal (no IPC bridge)');
+        handleDismiss();
+        return;
+      }
+      const result = await window.electronAPI.focusTerminal();
+      if (result?.ok) {
+        console.log(`[ping-balloon] focused ${result.app}`);
+        handleDismiss();
+      } else {
+        console.warn('[ping-balloon] terminal focus failed:', result?.error);
+      }
+    } finally {
+      isFocusingRef.current = false;
     }
   };
 

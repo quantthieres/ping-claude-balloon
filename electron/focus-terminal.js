@@ -2,15 +2,16 @@
 
 const { execFile } = require('child_process');
 
-// macOS: processName = what pgrep sees; activateName = AppleScript target
+// macOS apps tried in priority order.
+// activateName = exact string passed to "tell application X to activate".
 const MACOS_APPS = [
-  { processName: 'Warp',     activateName: 'Warp',               displayName: 'Warp' },
-  { processName: 'iTerm2',   activateName: 'iTerm2',             displayName: 'iTerm2' },
-  { processName: 'Terminal', activateName: 'Terminal',           displayName: 'Terminal' },
-  { processName: 'Code',     activateName: 'Visual Studio Code', displayName: 'VS Code' },
+  { activateName: 'Warp',               displayName: 'Warp' },
+  { activateName: 'iTerm2',             displayName: 'iTerm2' },
+  { activateName: 'Terminal',           displayName: 'Terminal' },
+  { activateName: 'Visual Studio Code', displayName: 'VS Code' },
 ];
 
-// Windows: names = candidate process names tried in order (e.g. pwsh before powershell)
+// Windows: names = candidate process names tried in order
 const WINDOWS_APPS = [
   { names: ['WindowsTerminal'],      displayName: 'Windows Terminal' },
   { names: ['pwsh', 'powershell'],   displayName: 'PowerShell' },
@@ -30,30 +31,20 @@ function execP(cmd, args, opts = {}) {
 // ── macOS ─────────────────────────────────────────────────────────────────────
 
 /**
- * Fast pgrep check — exits 0 when processName is running, 1 when not.
- * Returns false if pgrep itself fails (permission, name mismatch, etc.).
+ * Try to bring each terminal/editor to the front using AppleScript activate.
+ *
+ * We skip all pre-flight "is the app running?" checks — those checks
+ * (pgrep, AppleScript "is running") can fail inside the Electron sandbox
+ * even when the target app is clearly running. Instead we attempt
+ * `tell application X to activate` directly:
+ *
+ *  • exit 0  → the app was activated (or just launched if it wasn't running)
+ *  • non-0   → the app is not installed / automation permission denied
+ *              → try the next app
+ *
+ * On first use, macOS may show an Automation permission dialog.
+ * Once approved, subsequent calls are instant.
  */
-function isRunningPgrep(processName) {
-  return execP('pgrep', ['-x', processName]).then(() => true, () => false);
-}
-
-/**
- * AppleScript fallback — asks the OS whether the app bundle is running.
- * More reliable than pgrep for apps whose process name differs from their
- * bundle name (e.g. VS Code runs as "Electron", Warp variants, etc.).
- * Always exits 0; returns "yes" or "no" via stdout.
- */
-async function isRunningAppleScript(activateName) {
-  try {
-    const out = await execP('osascript', [
-      '-e', `if application "${activateName}" is running then "yes" else "no"`,
-    ]);
-    return out === 'yes';
-  } catch {
-    return false;
-  }
-}
-
 async function focusMacOS(preferredApp) {
   let apps = [...MACOS_APPS];
 
@@ -66,17 +57,6 @@ async function focusMacOS(preferredApp) {
 
   for (const app of apps) {
     console.log(`[ping-balloon] trying to focus ${app.displayName}`);
-
-    // pgrep is tried first (fast, zero AppleScript overhead).
-    // If it reports "not found" — possibly a process-name mismatch or sandbox
-    // restriction — we fall back to AppleScript's own 'is running' check,
-    // which uses the same mechanism as 'tell application ... to activate'.
-    const running =
-      (await isRunningPgrep(app.processName)) ||
-      (await isRunningAppleScript(app.activateName));
-
-    if (!running) continue;
-
     try {
       await execP('osascript', ['-e', `tell application "${app.activateName}" to activate`]);
       console.log(`[ping-balloon] focused ${app.displayName}`);
@@ -86,15 +66,11 @@ async function focusMacOS(preferredApp) {
     }
   }
 
-  return { ok: false, error: 'No supported terminal or editor found running' };
+  return { ok: false, error: 'No supported terminal or editor could be focused' };
 }
 
 // ── Windows ───────────────────────────────────────────────────────────────────
 
-// Builds a self-contained PowerShell script that walks the priority list,
-// finds the first running process, and calls AppActivate on its PID.
-// Outputs the display name on success, "none" if nothing matched.
-// Windows foreground-lock can prevent full focus; AppActivate is best-effort.
 function buildWindowsScript(apps) {
   const appDefs = apps
     .map((app) => {
@@ -136,7 +112,6 @@ async function focusWindows(preferredApp) {
   let result;
 
   try {
-    // PowerShell startup can be slow; allow extra time
     result = await execP(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-Command', script],
