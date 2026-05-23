@@ -162,19 +162,22 @@ export default function App() {
   };
 
   // ── Click on bubble body — focus terminal then dismiss ───────────────────
+  // The bubble is hidden only when focus succeeds. If no terminal can be
+  // found the bubble stays visible so the user can dismiss manually with ×.
   const handleFocusTerminal = async () => {
     if (!window.electronAPI?.focusTerminal) {
-      console.log('[agent-ping] focus terminal (no IPC bridge)');
+      console.log('[ping-balloon] focus terminal (no IPC bridge)');
       handleDismiss();
       return;
     }
     const result = await window.electronAPI.focusTerminal();
     if (result?.ok) {
-      console.log(`[agent-ping] focused ${result.app}`);
+      console.log(`[ping-balloon] focused ${result.app}`);
+      handleDismiss();
     } else {
-      console.warn('[agent-ping] terminal focus failed:', result?.error);
+      console.warn('[ping-balloon] terminal focus failed:', result?.error);
+      // leave the bubble visible — user can retry or dismiss with ×
     }
-    handleDismiss();
   };
 
   return (

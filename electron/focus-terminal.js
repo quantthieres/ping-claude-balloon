@@ -29,8 +29,29 @@ function execP(cmd, args, opts = {}) {
 
 // ── macOS ─────────────────────────────────────────────────────────────────────
 
-function isRunning(processName) {
+/**
+ * Fast pgrep check — exits 0 when processName is running, 1 when not.
+ * Returns false if pgrep itself fails (permission, name mismatch, etc.).
+ */
+function isRunningPgrep(processName) {
   return execP('pgrep', ['-x', processName]).then(() => true, () => false);
+}
+
+/**
+ * AppleScript fallback — asks the OS whether the app bundle is running.
+ * More reliable than pgrep for apps whose process name differs from their
+ * bundle name (e.g. VS Code runs as "Electron", Warp variants, etc.).
+ * Always exits 0; returns "yes" or "no" via stdout.
+ */
+async function isRunningAppleScript(activateName) {
+  try {
+    const out = await execP('osascript', [
+      '-e', `if application "${activateName}" is running then "yes" else "no"`,
+    ]);
+    return out === 'yes';
+  } catch {
+    return false;
+  }
 }
 
 async function focusMacOS(preferredApp) {
@@ -44,14 +65,24 @@ async function focusMacOS(preferredApp) {
   }
 
   for (const app of apps) {
-    if (!(await isRunning(app.processName))) continue;
+    console.log(`[ping-balloon] trying to focus ${app.displayName}`);
+
+    // pgrep is tried first (fast, zero AppleScript overhead).
+    // If it reports "not found" — possibly a process-name mismatch or sandbox
+    // restriction — we fall back to AppleScript's own 'is running' check,
+    // which uses the same mechanism as 'tell application ... to activate'.
+    const running =
+      (await isRunningPgrep(app.processName)) ||
+      (await isRunningAppleScript(app.activateName));
+
+    if (!running) continue;
 
     try {
       await execP('osascript', ['-e', `tell application "${app.activateName}" to activate`]);
-      console.log(`[agent-ping] focused ${app.displayName}`);
+      console.log(`[ping-balloon] focused ${app.displayName}`);
       return { ok: true, app: app.displayName };
     } catch (err) {
-      console.warn(`[agent-ping] activate "${app.displayName}" failed: ${err.stderr || err.message}`);
+      console.warn(`[ping-balloon] focus failed ${app.displayName}:`, err.stderr || err.message);
     }
   }
 
@@ -119,7 +150,7 @@ async function focusWindows(preferredApp) {
     return { ok: false, error: 'No supported terminal or editor found running' };
   }
 
-  console.log(`[agent-ping] focused ${result}`);
+  console.log(`[ping-balloon] focused ${result}`);
   return { ok: true, app: result };
 }
 
