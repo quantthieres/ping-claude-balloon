@@ -2,15 +2,16 @@
 
 const { execFile } = require('child_process');
 
-// macOS: processName = what pgrep sees; activateName = AppleScript target
+// macOS apps tried in priority order.
+// activateName = exact string passed to "tell application X to activate".
 const MACOS_APPS = [
-  { processName: 'Warp',     activateName: 'Warp',               displayName: 'Warp' },
-  { processName: 'iTerm2',   activateName: 'iTerm2',             displayName: 'iTerm2' },
-  { processName: 'Terminal', activateName: 'Terminal',           displayName: 'Terminal' },
-  { processName: 'Code',     activateName: 'Visual Studio Code', displayName: 'VS Code' },
+  { activateName: 'Warp',               displayName: 'Warp' },
+  { activateName: 'iTerm2',             displayName: 'iTerm2' },
+  { activateName: 'Terminal',           displayName: 'Terminal' },
+  { activateName: 'Visual Studio Code', displayName: 'VS Code' },
 ];
 
-// Windows: names = candidate process names tried in order (e.g. pwsh before powershell)
+// Windows: names = candidate process names tried in order
 const WINDOWS_APPS = [
   { names: ['WindowsTerminal'],      displayName: 'Windows Terminal' },
   { names: ['pwsh', 'powershell'],   displayName: 'PowerShell' },
@@ -29,10 +30,21 @@ function execP(cmd, args, opts = {}) {
 
 // ── macOS ─────────────────────────────────────────────────────────────────────
 
-function isRunning(processName) {
-  return execP('pgrep', ['-x', processName]).then(() => true, () => false);
-}
-
+/**
+ * Try to bring each terminal/editor to the front using AppleScript activate.
+ *
+ * We skip all pre-flight "is the app running?" checks — those checks
+ * (pgrep, AppleScript "is running") can fail inside the Electron sandbox
+ * even when the target app is clearly running. Instead we attempt
+ * `tell application X to activate` directly:
+ *
+ *  • exit 0  → the app was activated (or just launched if it wasn't running)
+ *  • non-0   → the app is not installed / automation permission denied
+ *              → try the next app
+ *
+ * On first use, macOS may show an Automation permission dialog.
+ * Once approved, subsequent calls are instant.
+ */
 async function focusMacOS(preferredApp) {
   let apps = [...MACOS_APPS];
 
@@ -44,26 +56,21 @@ async function focusMacOS(preferredApp) {
   }
 
   for (const app of apps) {
-    if (!(await isRunning(app.processName))) continue;
-
+    console.log(`[ping-balloon] trying to focus ${app.displayName}`);
     try {
       await execP('osascript', ['-e', `tell application "${app.activateName}" to activate`]);
-      console.log(`[agent-ping] focused ${app.displayName}`);
+      console.log(`[ping-balloon] focused ${app.displayName}`);
       return { ok: true, app: app.displayName };
     } catch (err) {
-      console.warn(`[agent-ping] activate "${app.displayName}" failed: ${err.stderr || err.message}`);
+      console.warn(`[ping-balloon] focus failed ${app.displayName}:`, err.stderr || err.message);
     }
   }
 
-  return { ok: false, error: 'No supported terminal or editor found running' };
+  return { ok: false, error: 'No supported terminal or editor could be focused' };
 }
 
 // ── Windows ───────────────────────────────────────────────────────────────────
 
-// Builds a self-contained PowerShell script that walks the priority list,
-// finds the first running process, and calls AppActivate on its PID.
-// Outputs the display name on success, "none" if nothing matched.
-// Windows foreground-lock can prevent full focus; AppActivate is best-effort.
 function buildWindowsScript(apps) {
   const appDefs = apps
     .map((app) => {
@@ -105,7 +112,6 @@ async function focusWindows(preferredApp) {
   let result;
 
   try {
-    // PowerShell startup can be slow; allow extra time
     result = await execP(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-Command', script],
@@ -119,7 +125,7 @@ async function focusWindows(preferredApp) {
     return { ok: false, error: 'No supported terminal or editor found running' };
   }
 
-  console.log(`[agent-ping] focused ${result}`);
+  console.log(`[ping-balloon] focused ${result}`);
   return { ok: true, app: result };
 }
 
