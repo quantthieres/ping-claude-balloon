@@ -3,6 +3,50 @@
 All notable changes to this project are documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [0.2.0] — 2026-05-23
+
+### Added
+
+**Event-only notification mode**
+- Bubble is now **hidden on startup** — the window starts invisible and only appears when a real event arrives
+- `complete` (Task done) — auto-hides after **6 seconds**
+- `permission` (Permission needed) — **persistent** until the user clicks or dismisses
+- `waiting` (Waiting for input) — auto-hides after **8 seconds** when shown; disabled by default from hooks
+
+**Hook filtering**
+- Generic / idle `Notification` events are **suppressed by default** — no more noise while Claude is just thinking
+- Set `PING_BALLOON_SHOW_WAITING=1` to restore the previous behaviour (waiting bubble on any Notification)
+- `Stop` → `complete` and permission `Notification` → `permission` are unaffected and always show
+
+**Sound**
+- Short, discrete sound plays whenever the bubble appears (Web Audio API — no external audio file)
+- `complete`: soft two-note ascending chime (C5 → E5)
+- `permission`: three quick ascending beeps (more attention-grabbing)
+- `waiting` (debug): single soft pulse
+- Set `PING_BALLOON_SOUND=0` to silence all sounds
+- Sound is **on by default**; theme toggle and bubble restore do not play any sound
+
+**Dismiss & focus behaviour**
+- Clicking the bubble body now **focuses the terminal and then hides the bubble**
+- Clicking the **× button** hides the bubble immediately
+- Theme toggle (☾/☀) still works independently and does **not** dismiss or focus the terminal
+
+### Changed
+
+- Window starts **hidden** instead of visible — `ping-balloon start` no longer shows a bubble immediately
+- `claude-hook-notify.js`: generic `Notification` events no longer trigger a `/notify` request by default
+- `handleFocusTerminal` now always dismisses the bubble after attempting focus (was focus-only before)
+
+### Environment variables
+
+| Variable | Default | Effect |
+|---|---|---|
+| `PING_BALLOON_SOUND=0` | sound on | Silence all notification sounds |
+| `PING_BALLOON_SHOW_WAITING=1` | suppressed | Show `waiting` bubble on generic Notification hooks |
+| `AGENT_PING_HOOK_DEBUG=1` | off | Append timestamped debug JSON to `.claude/agent-ping-hook-debug.log` |
+
+---
+
 ## [0.1.0] — 2026-05-22
 
 ### Added

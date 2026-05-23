@@ -33,17 +33,17 @@
 [![macOS](https://img.shields.io/badge/macOS-supported-black)](https://github.com/quantthieres/ping-claude-balloon)
 [![Windows](https://img.shields.io/badge/Windows-best--effort-0078D4)](https://github.com/quantthieres/ping-claude-balloon)
 
-> A floating desktop notification bubble for terminal coding agents - know instantly when your agent is done, waiting for input, or needs permission.
+> A floating desktop notification bubble for terminal coding agents - know instantly when your agent is done or needs permission.
 
-Ping Balloon sits in the corner of your screen and changes state as Claude works:
+Ping Balloon sits in the corner of your screen and appears **only when something important happens**:
 
-| State | Color | Meaning |
-|---|---|---|
-| **complete** | Green | Task finished - Claude stopped |
-| **waiting** | Blue | Claude is idle, waiting for your next prompt |
-| **permission** | Amber | Claude needs your approval to continue |
+| State | Color | Appearance | Behaviour |
+|---|---|---|---|
+| **complete** | Green | Task finished — Claude stopped | Auto-hides after 6 s |
+| **permission** | Amber | Claude needs your approval | Stays visible until dismissed |
+| **waiting** | Blue | Claude is idle (debug/legacy) | Auto-hides after 8 s; hidden by default from hooks |
 
-Clicking the bubble brings your terminal or editor back into focus automatically.
+The bubble is **hidden on startup** and between events — it only pops up when Claude finishes a task or needs permission. Clicking the bubble brings your terminal back into focus and then hides the bubble.
 
 ---
 
@@ -247,13 +247,13 @@ This writes to `.claude/settings.local.json` (project-scoped, git-ignored). Hook
 
 | Claude Code event | Condition | Bubble state |
 |---|---|---|
-| `Stop` | always | `complete` (green) |
-| `Notification` | message contains a permission keyword | `permission` (amber) |
-| `Notification` | anything else | `waiting` (blue) |
+| `Stop` | always | `complete` (green, auto-hides 6 s) |
+| `Notification` | message contains a permission keyword | `permission` (amber, persistent) |
+| `Notification` | anything else | **skipped by default** (set `PING_BALLOON_SHOW_WAITING=1` to re-enable) |
 
 **Permission keywords** (case-insensitive): `permission`, `allow`, `approve`, `authorize`, `grant`, `blocked`, `requires approval`, `do you want to`, `confirm`
 
-The routing depends on the actual payload Claude Code sends. If the message contains none of these keywords the default is `waiting`.
+Generic Notification events (Claude is just thinking or idle) are **suppressed** so the bubble doesn't keep flashing. Only task completion and permission requests produce a notification.
 
 ### Debug mode
 
@@ -262,7 +262,7 @@ AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop
 cat .claude/agent-ping-hook-debug.log
 ```
 
-Each hook invocation appends a JSON line with timestamp, event, payload, chosen state, and HTTP result.
+Each hook invocation appends a JSON line with timestamp, event, payload, chosen state (or `skip`), and HTTP result.
 
 ### Remove hooks
 
@@ -271,6 +271,45 @@ ping-balloon hooks uninstall
 ```
 
 Only Ping Balloon entries are removed. Other hooks in the same file are preserved.
+
+---
+
+## Environment Variables
+
+Set these before starting Ping Balloon (`ping-balloon start`) or before running a hook.
+
+### `PING_BALLOON_SOUND=0`
+
+Silence all notification sounds. By default a short, discrete sound plays each time the bubble appears.
+
+```bash
+PING_BALLOON_SOUND=0 ping-balloon start
+```
+
+### `PING_BALLOON_SHOW_WAITING=1`
+
+Re-enable the `waiting` bubble for generic Notification events. By default these are suppressed to avoid noise.
+
+```bash
+# Start Ping Balloon with waiting notifications enabled
+PING_BALLOON_SHOW_WAITING=1 ping-balloon start
+
+# Test that the hook sends waiting when the flag is set
+PING_BALLOON_SHOW_WAITING=1 \
+  echo '{"hook_event_name":"Notification","message":"Waiting for input"}' \
+  | node scripts/claude-hook-notify.js Notification
+```
+
+> **Note:** `PING_BALLOON_SHOW_WAITING` is read by `claude-hook-notify.js` at hook-invocation time, not by the Electron app. Set it as an environment variable in your shell or in `.env` if your workflow supports it.
+
+### `AGENT_PING_HOOK_DEBUG=1`
+
+Append timestamped debug JSON to `.claude/agent-ping-hook-debug.log` on every hook invocation.
+
+```bash
+AGENT_PING_HOOK_DEBUG=1 node scripts/claude-hook-notify.js Stop
+cat .claude/agent-ping-hook-debug.log
+```
 
 ---
 
@@ -329,27 +368,35 @@ Use this checklist before tagging a release.
 
 **App startup**
 - [ ] `npm run build` completes without errors
-- [ ] `ping-balloon start` opens the Electron window
-- [ ] Window appears in the top-right corner, always on top
+- [ ] `ping-balloon start` opens the Electron process — **no bubble visible on launch**
 - [ ] `ping-balloon health` returns `{"ok":true,"app":"agent-ping"}`
 
-**Bubble states**
-- [ ] `ping-balloon notify complete` → green bubble, DONE label
-- [ ] `ping-balloon notify waiting` → blue bubble, IDLE label, bob animation
-- [ ] `ping-balloon notify permission` → amber bubble, HOLD label, shake animation
-- [ ] Dismiss button (×) hides the bubble
-- [ ] Next notify event makes the bubble reappear
+**Bubble states and timing**
+- [ ] `ping-balloon notify complete` → green bubble appears, DONE label, **auto-hides after ~6 s**, short chime plays
+- [ ] `ping-balloon notify permission` → amber bubble appears, HOLD label, **stays visible**, triple-beep plays
+- [ ] `ping-balloon notify waiting` → blue bubble appears, IDLE label, **auto-hides after ~8 s**, soft pulse plays
+- [ ] Dismiss button (×) hides the bubble immediately (cancels any auto-hide timer)
+- [ ] Next notify event makes the bubble reappear regardless of current visibility
+
+**Sound**
+- [ ] Default: sound plays on `complete`, `permission`, `waiting`
+- [ ] Theme toggle (☾/☀) produces **no sound**
+- [ ] `PING_BALLOON_SOUND=0 ping-balloon start` → bubble appears but **no sound**
 
 **Theme**
 - [ ] ☾/☀ button (inside the bubble, bottom-right) toggles light/dark theme
-- [ ] Clicking the theme button does not focus the terminal
+- [ ] Clicking the theme button does **not** focus the terminal or dismiss the bubble
 
 **Bubble click — terminal focus** (macOS)
-- [ ] Clicking the bubble focuses the active terminal app
+- [ ] Clicking the bubble body focuses the active terminal app **and then hides the bubble**
 
-**Claude Code hooks**
+**Claude Code hook filtering**
+- [ ] Run: `echo '{"hook_event_name":"Stop"}' | node scripts/claude-hook-notify.js Stop` → complete bubble
+- [ ] Run: `echo '{"hook_event_name":"Notification","message":"Permission required"}' | node scripts/claude-hook-notify.js Notification` → permission bubble
+- [ ] Run: `echo '{"hook_event_name":"Notification","message":"Waiting for input"}' | node scripts/claude-hook-notify.js Notification` → **no bubble** (suppressed by default)
+- [ ] Run: `PING_BALLOON_SHOW_WAITING=1 echo '{"hook_event_name":"Notification","message":"Waiting for input"}' | node scripts/claude-hook-notify.js Notification` → waiting bubble appears
 - [ ] `ping-balloon hooks install` writes to `.claude/settings.local.json`
-- [ ] Running a Claude Code prompt triggers the `Stop` hook → bubble shows `complete`
+- [ ] Running a Claude Code prompt triggers `Stop` hook → bubble shows `complete`
 - [ ] `ping-balloon hooks uninstall` removes entries without touching other hooks
 
 **CLI edge cases**
@@ -359,16 +406,9 @@ Use this checklist before tagging a release.
 - [ ] `ping-balloon start` when `dist/` is missing → clear error, exit 1
 - [ ] `ping-balloon doctor` reports all ✓ when everything is set up
 
-**Package (npm)**
+**Package**
 - [ ] `npm pack --dry-run` shows only expected files (no `src/`, `node_modules/`, `.claude/`)
-- [ ] `npm install @quantthieres/ping-balloon` in a clean directory succeeds
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon help` — shows usage
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon doctor` — all checks pass except HTTP server (not running)
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon start` — opens the Electron window
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon notify permission/waiting/complete` — bubble changes state
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon hooks install` — writes `.claude/settings.local.json`
-- [ ] `cat .claude/settings.local.json` — contains `claude-hook-notify.js` commands with absolute path
-- [ ] `npx --package=@quantthieres/ping-balloon ping-balloon hooks uninstall` — removes entries cleanly
+- [ ] `npm pack --dry-run` version shows `0.2.0`
 
 ---
 

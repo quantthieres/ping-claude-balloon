@@ -2,23 +2,29 @@
 'use strict';
 
 /**
- * Claude Code hook entry point — routes hook events to the Agent Ping /notify endpoint.
+ * Claude Code hook entry point — routes hook events to the Ping Balloon /notify endpoint.
  *
  * Claude Code pipes a JSON payload to stdin when invoking a hook command.
  * We read that payload, detect the hook event type, decide which visual
  * state to show, and POST to http://127.0.0.1:47321/notify.
  *
+ * Event routing (v0.2.0):
+ *   Stop                           → complete  (always shown)
+ *   Notification + permission text → permission (always shown)
+ *   Notification (generic/idle)    → skipped by default
+ *                                    set PING_BALLOON_SHOW_WAITING=1 to re-enable
+ *
  * This script must NEVER crash Claude Code:
  *   - all errors are swallowed
  *   - always exits with code 0
- *   - if Agent Ping is not running, fails silently
+ *   - if Ping Balloon is not running, fails silently
  *
  * Usage (from hook command):
  *   node /abs/path/claude-hook-notify.js <HookEventName> >/dev/null 2>&1 || true
  *
- * Debug mode:
- *   AGENT_PING_HOOK_DEBUG=1 node claude-hook-notify.js Stop
- *   → appends JSON lines to .claude/agent-ping-hook-debug.log
+ * Environment variables:
+ *   PING_BALLOON_SHOW_WAITING=1    Show bubble for generic Notification events
+ *   AGENT_PING_HOOK_DEBUG=1        Append debug JSON lines to .claude/agent-ping-hook-debug.log
  */
 
 const http = require('http');
@@ -28,6 +34,7 @@ const path = require('path');
 const PORT  = 47321;
 const HOST  = '127.0.0.1';
 const DEBUG = process.env.AGENT_PING_HOOK_DEBUG === '1';
+const SHOW_WAITING = process.env.PING_BALLOON_SHOW_WAITING === '1';
 const DEBUG_LOG = path.join(process.cwd(), '.claude', 'agent-ping-hook-debug.log');
 
 // Keywords in a Notification message that indicate permission is required
@@ -54,10 +61,15 @@ function dbg(data) {
   } catch { /* silent */ }
 }
 
+/**
+ * Determine which notification state to show, or null to skip entirely.
+ *
+ * @returns {'complete'|'permission'|'waiting'|null}
+ */
 function detectState(hookEvent, payload) {
+  // Stop always means the task is done — always notify
   if (hookEvent === 'Stop') return 'complete';
 
-  // For Notification, inspect the message text to distinguish states
   if (hookEvent === 'Notification') {
     const text = [
       payload.message,
@@ -65,13 +77,22 @@ function detectState(hookEvent, payload) {
       payload.notification,
     ].filter(Boolean).join(' ').toLowerCase();
 
+    // Permission-related message — always show
     if (text && PERMISSION_KEYWORDS.some((kw) => text.includes(kw))) {
       return 'permission';
     }
-    return 'waiting';
+
+    // Generic / idle notification — skip by default to reduce noise.
+    // Set PING_BALLOON_SHOW_WAITING=1 to restore the legacy "waiting" bubble.
+    if (SHOW_WAITING) {
+      return 'waiting';
+    }
+
+    return null; // skip
   }
 
-  return 'waiting';
+  // Unknown hook events — skip
+  return null;
 }
 
 function sendNotify(state) {
@@ -146,9 +167,15 @@ async function main() {
       }
     }
 
-    dbg({ type: 'input', hookEvent, cliEvent, payload: stdinRaw ? payload : '(none)' });
+    dbg({ type: 'input', hookEvent, cliEvent, showWaiting: SHOW_WAITING, payload: stdinRaw ? payload : '(none)' });
 
     const state = detectState(hookEvent, payload);
+
+    if (state === null) {
+      dbg({ type: 'decision', state: 'skip', reason: 'generic notification suppressed (set PING_BALLOON_SHOW_WAITING=1 to enable)' });
+      process.exit(0);
+      return;
+    }
 
     dbg({ type: 'decision', state });
 
